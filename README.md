@@ -25,7 +25,7 @@ attributes in `index.html`:
 
 | File | Used for | Suggested size |
 |---|---|---|
-| `hero.svg` | Hero photo, right half | 1600 × 1200 |
+| `hero.jpg` + `hero-900.jpg` | Hero photo, right half (real photo; regenerate both sizes together) | 1400 × 768 |
 | `about.svg` | About section | 800 × 720 |
 | `p1`–`p6.svg` | Portfolio grid | 600 × 440 |
 | `avatar-1`–`3.svg` | Testimonial portraits | 128 × 128 |
