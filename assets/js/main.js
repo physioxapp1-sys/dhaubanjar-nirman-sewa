@@ -242,6 +242,5 @@
     });
   }
 
-  wireForm($('#quoteForm'), $('#quoteNote'), 'Thank you — we will call you back within one working day.');
   wireForm($('#contactForm'), $('#contactNote'), 'Enquiry received. Our team will reply within one working day.');
 })();

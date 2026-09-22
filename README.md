@@ -30,7 +30,7 @@ attributes in `index.html`:
 | `p1`–`p6.svg` | Portfolio grid | 600 × 440 |
 | `avatar-1`–`3.svg` | Testimonial portraits | 128 × 128 |
 
-**2. Wire up the forms.** Both forms validate in the browser but do not submit
+**2. Wire up the contact form.** It validates in the browser but does not submit
 anywhere yet — see the comment in `wireForm()` in `assets/js/main.js`. Replace the
 `setTimeout` block with a `fetch()` to Formspree, Netlify Forms, or your own
 endpoint.
@@ -42,21 +42,29 @@ contact details that disagree between the page and the structured data.
 
 ## Deployment
 
-`.cpanel.yml` drives cPanel's **Deploy HEAD Commit** button, copying `index.html`,
-`robots.txt`, `sitemap.xml` and `assets/` to the document root. It only adds and
-overwrites, never deletes, so `cgi-bin`, `php.ini`, `.user.ini`, `.well-known` and
-`.htaccess` in the document root are safe.
-
-By hand, from the clone:
+Install the hook once on the server:
 
 ```bash
-git pull
-cp -r index.html robots.txt sitemap.xml assets /home2/madhyapu/dhaubanjarnirmansewa.com.np/
+cd ~/repositories/dhaubanjar-nirman-sewa
+chmod +x deploy.sh
+ln -sf ../../deploy.sh .git/hooks/post-merge
 ```
 
-The canonical hostname is **www.dhaubanjarnirmansewa.com.np**. If that ever changes,
-update it in `index.html` (canonical, `og:url`, `og:image`, and the JSON-LD `@id`,
-`url`, `image`, `logo`), `sitemap.xml`, `robots.txt`, and the `.htaccess` redirect.
+From then on, deploying is one command:
+
+```bash
+cd ~/repositories/dhaubanjar-nirman-sewa && git pull
+```
+
+`deploy.sh` replaces `assets/` wholesale (so removed files do not linger) and
+copies `index.html`, `robots.txt` and `sitemap.xml` in place. It never deletes
+anything else, so `cgi-bin`, `php.ini`, `.user.ini`, `.well-known` and `.htaccess`
+in the document root are untouched. `.cpanel.yml` does the same work for cPanel's
+**Deploy HEAD Commit** button, if you prefer clicking.
+
+The canonical hostname is **www.dhaubanjarnirmansewa.com.np**. If it ever changes,
+update `index.html` (canonical, `og:url`, `og:image`, and the JSON-LD `@id`, `url`,
+`image`, `logo`), `sitemap.xml`, `robots.txt`, and the `.htaccess` redirect.
 
 ## Colours
 

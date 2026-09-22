@@ -210,43 +210,7 @@ ul { margin: 0; padding: 0; list-style: none; }
   background: linear-gradient(90deg, var(--cream) 0%, rgba(247, 241, 230, .35) 8%, transparent 22%);
 }
 
-/* floating quote card */
-.quote-card {
-  position: absolute; right: clamp(20px, 4vw, 60px); bottom: -96px; z-index: 20;
-  width: min(330px, calc(100vw - 48px));
-  padding: 26px 24px 24px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, .45);
-  background: linear-gradient(160deg, rgba(160, 134, 96, .93), rgba(122, 99, 68, .95));
-  box-shadow: var(--shadow-lg);
-  backdrop-filter: blur(6px);
-  color: #fff;
-}
-.quote-card h2 {
-  font-size: 1.6rem; color: #fff; margin-bottom: .85rem;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, .18);
-}
-.quote-card .field { margin-bottom: 10px; }
-.quote-card input, .quote-card textarea {
-  width: 100%; padding: 11px 14px;
-  border: 1px solid rgba(255, 255, 255, .28); border-radius: 4px;
-  background: rgba(255, 255, 255, .17); color: #fff;
-  font: inherit; font-size: .9rem;
-  transition: background .2s var(--ease), border-color .2s var(--ease);
-}
-.quote-card textarea { resize: vertical; min-height: 82px; }
-.quote-card input::placeholder, .quote-card textarea::placeholder { color: rgba(255, 255, 255, .72); }
-.quote-card input:focus, .quote-card textarea:focus {
-  outline: none; background: rgba(255, 255, 255, .26); border-color: rgba(255, 255, 255, .6);
-}
-.quote-card input.is-invalid, .quote-card textarea.is-invalid { border-color: #ffd0c4; background: rgba(255, 120, 90, .2); }
-.quote-card .btn-gold {
-  margin-top: 6px;
-  background: linear-gradient(135deg, #f3e2bf, #e2c893);
-  color: var(--espresso);
-}
 .form-note { margin: 10px 0 0; font-size: .82rem; min-height: 1.2em; }
-.quote-card .form-note { color: #fdf3dd; }
 
 /* ---------- feature strip ---------- */
 .strip {
@@ -256,7 +220,7 @@ ul { margin: 0; padding: 0; list-style: none; }
     repeating-linear-gradient(112deg, #f2ece1 0 26px, #ece4d6 26px 52px, #f6f1e8 52px 86px);
   border-bottom: 1px solid var(--line);
 }
-.strip-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; padding-right: min(360px, 32vw); }
+.strip-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
 .strip-item { text-align: center; padding: 10px; }
 .strip-item svg { width: 34px; height: 34px; margin: 0 auto 14px; color: var(--gold); }
 .strip-item h3 { font-size: 1.32rem; margin-bottom: .25em; color: var(--espresso); }
@@ -270,7 +234,7 @@ ul { margin: 0; padding: 0; list-style: none; }
     repeating-linear-gradient(90deg, #e6d6b8 0 7px, #e1cfae 7px 14px, #eadcc2 14px 24px);
   text-align: center;
 }
-.tm-slides { position: relative; max-width: 760px; margin-inline: auto; min-height: 250px; padding-right: min(320px, 28vw); }
+.tm-slides { position: relative; max-width: 760px; margin-inline: auto; min-height: 250px; }
 .tm {
   position: absolute; inset: 0; margin: 0;
   opacity: 0; visibility: hidden; transform: translateY(12px);
@@ -288,7 +252,7 @@ ul { margin: 0; padding: 0; list-style: none; }
 .tm figcaption { display: flex; flex-direction: column; gap: 2px; }
 .tm figcaption strong { font-size: .97rem; color: var(--ink); }
 .tm figcaption span { font-size: .82rem; color: var(--muted); }
-.tm-dots { display: flex; justify-content: center; gap: 9px; margin-top: 26px; padding-right: min(320px, 28vw); }
+.tm-dots { display: flex; justify-content: center; gap: 9px; margin-top: 26px; }
 .tm-dots button {
   width: 9px; height: 9px; border-radius: 50%; background: rgba(58, 47, 34, .25);
   transition: background .25s var(--ease), transform .25s var(--ease), width .25s var(--ease);
@@ -540,9 +504,7 @@ ul { margin: 0; padding: 0; list-style: none; }
   .hero-copy-inner { margin: 0; }
   .hero-media { order: 1; height: clamp(260px, 42vh, 400px); }
   .hero-media-fade { background: linear-gradient(to bottom, transparent 55%, rgba(247, 241, 230, .85) 100%); }
-  .quote-card { position: static; width: auto; margin: 0 24px 40px; order: 3; }
 
-  .strip-grid, .tm-slides, .tm-dots { padding-right: 0; }
   .strip-grid { grid-template-columns: repeat(2, 1fr); gap: 28px 16px; }
 
   .about-grid, .contact-grid { grid-template-columns: 1fr; }
@@ -576,6 +538,6 @@ ul { margin: 0; padding: 0; list-style: none; }
 }
 
 @media print {
-  .site-header, .to-top, .quote-card, .filters { display: none; }
+  .site-header, .to-top, .filters { display: none; }
   body { background: #fff; }
 }
