@@ -1,0 +1,62 @@
+Reference only — this file is NOT deployed by .cpanel.yml.
+
+APPEND the block below to the existing .htaccess in the document root:
+    /home2/madhyapu/dhaubanjarnirmansewa.com.np/.htaccess
+
+Do not replace that file. It already contains hosting rules you need.
+
+Back it up first:
+    cd /home2/madhyapu/dhaubanjarnirmansewa.com.np
+    cp .htaccess .htaccess.bak
+
+Then append:
+    cat >> .htaccess <<'EOF'
+    ...block below...
+    EOF
+
+If the site breaks, restore instantly:
+    cp .htaccess.bak .htaccess
+
+================================================================
+BLOCK 1 — force https:// and www. (canonical hostname)
+================================================================
+
+# Redirect http -> https and non-www -> www in a single hop.
+# The .well-known exclusion keeps AutoSSL certificate renewal working.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{REQUEST_URI} !^/\.well-known/
+  RewriteCond %{HTTPS} !=on [OR]
+  RewriteCond %{HTTP_HOST} !^www\. [NC]
+  RewriteRule ^ https://www.dhaubanjarnirmansewa.com.np%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+# NOTE: if the server sits behind a proxy or CDN, %{HTTPS} may never be "on",
+# which would cause a redirect loop. If that happens, swap the HTTPS line for:
+#   RewriteCond %{HTTP:X-Forwarded-Proto} !https [OR]
+
+================================================================
+BLOCK 2 — compression and caching (optional, but makes the site
+noticeably faster; the CSS/JS/SVG here compress very well)
+================================================================
+
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css text/plain text/xml
+  AddOutputFilterByType DEFLATE application/javascript application/json
+  AddOutputFilterByType DEFLATE image/svg+xml
+</IfModule>
+
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType text/css            "access plus 1 year"
+  ExpiresByType application/javascript "access plus 1 year"
+  ExpiresByType image/svg+xml       "access plus 1 year"
+  ExpiresByType image/png           "access plus 1 year"
+  ExpiresByType image/jpeg          "access plus 1 year"
+  # HTML stays short so content edits go live promptly.
+  ExpiresByType text/html           "access plus 1 hour"
+</IfModule>
+
+# Caveat: with a 1-year cache, returning visitors may keep an old styles.css
+# after you deploy changes. To force a refresh, bump the query string in
+# index.html, e.g. assets/css/styles.css?v=2

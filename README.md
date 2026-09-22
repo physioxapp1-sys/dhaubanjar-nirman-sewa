@@ -35,8 +35,28 @@ anywhere yet — see the comment in `wireForm()` in `assets/js/main.js`. Replace
 `setTimeout` block with a `fetch()` to Formspree, Netlify Forms, or your own
 endpoint.
 
-Also replace the placeholder phone number (`+977 98-0000-0000`) and email address,
-which appear in the contact section and the footer.
+The phone number is real. The email `info@dhaubanjarnirmansewa.com.np` is still a
+placeholder — if you change it, update all three places at once: the contact
+section, the footer, and the JSON-LD block in `<head>`. Search engines flag
+contact details that disagree between the page and the structured data.
+
+## Deployment
+
+`.cpanel.yml` drives cPanel's **Deploy HEAD Commit** button, copying `index.html`,
+`robots.txt`, `sitemap.xml` and `assets/` to the document root. It only adds and
+overwrites, never deletes, so `cgi-bin`, `php.ini`, `.user.ini`, `.well-known` and
+`.htaccess` in the document root are safe.
+
+By hand, from the clone:
+
+```bash
+git pull
+cp -r index.html robots.txt sitemap.xml assets /home2/madhyapu/dhaubanjarnirmansewa.com.np/
+```
+
+The canonical hostname is **www.dhaubanjarnirmansewa.com.np**. If that ever changes,
+update it in `index.html` (canonical, `og:url`, `og:image`, and the JSON-LD `@id`,
+`url`, `image`, `logo`), `sitemap.xml`, `robots.txt`, and the `.htaccess` redirect.
 
 ## Colours
 
