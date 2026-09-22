@@ -1,21 +1,24 @@
 /* =========================================================
    Dhaubanjar Nirman Sewa — stylesheet
-   Palette: warm cream, sand, antique gold, deep espresso
+   Palette: near-neutral warm white, sand, dusty champagne gold, espresso
    ========================================================= */
 
+/* Palette sampled directly from the reference mockup: a dusty champagne
+   gold on a near-neutral warm white, not a saturated metallic gold. */
 :root {
-  --cream:      #f7f1e6;
-  --cream-2:    #efe6d6;
-  --sand:       #e3d5bd;
-  --sand-deep:  #d3bf9d;
-  --gold:       #b08d4f;
-  --gold-soft:  #c9a969;
-  --gold-dark:  #8c6d38;
-  --espresso:   #3a2f22;
-  --ink:        #2c241a;
-  --muted:      #6d6153;
-  --line:       rgba(58, 47, 34, .14);
-  --white:      #fffdf9;
+  --cream:      #f8f7f3;
+  --cream-2:    #f2efe7;
+  --sand:       #e6e0d2;
+  --sand-deep:  #cdc2a9;
+  --gold:       #a98c55;   /* icons, rules, accents */
+  --gold-soft:  #d9c396;   /* champagne - button fill */
+  --gold-light: #f0ddbf;   /* bevel highlight on buttons */
+  --gold-dark:  #7d6238;   /* headline ink, eyebrow text */
+  --espresso:   #3a352c;
+  --ink:        #31322d;
+  --muted:      #6d6659;
+  --line:       rgba(58, 53, 44, .14);
+  --white:      #fdfcf9;
 
   --ff-display: "Cormorant Garamond", Georgia, "Times New Roman", serif;
   --ff-body:    "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -57,7 +60,7 @@ ul { margin: 0; padding: 0; list-style: none; }
 }
 .skip-link {
   position: absolute; left: 16px; top: -60px; z-index: 200;
-  background: var(--gold); color: var(--white); padding: 10px 18px; border-radius: 6px;
+  background: var(--gold-dark); color: var(--white); padding: 10px 18px; border-radius: 6px;
   transition: top .2s var(--ease);
 }
 .skip-link:focus { top: 14px; }
@@ -73,19 +76,26 @@ ul { margin: 0; padding: 0; list-style: none; }
               background .25s var(--ease), color .25s var(--ease), border-color .25s var(--ease);
   will-change: transform;
 }
+/* Champagne fill with a bevel highlight and dark text, matching the
+   mockup's buttons - a soft metallic sheen rather than a gold glow. */
 .btn-gold {
-  background: linear-gradient(135deg, var(--gold-soft), var(--gold) 55%, var(--gold-dark));
-  color: #fff;
-  box-shadow: 0 6px 18px rgba(176, 141, 79, .3);
-}
-.btn-gold:hover { transform: translateY(-2px); box-shadow: 0 12px 26px rgba(176, 141, 79, .42); }
-.btn-ghost {
-  background: rgba(255, 253, 249, .5);
-  border-color: var(--sand-deep);
+  background: linear-gradient(180deg, #e3d0a6 0%, var(--gold-soft) 48%, #cbb17d 100%);
   color: var(--espresso);
-  backdrop-filter: blur(4px);
+  border-color: #b9a077;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .75), 0 1px 3px rgba(58, 53, 44, .18);
 }
-.btn-ghost:hover { background: var(--white); border-color: var(--gold); color: var(--gold-dark); transform: translateY(-2px); }
+.btn-gold:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(180deg, var(--gold-light) 0%, #dfcaa1 48%, #cdb381 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .85), 0 6px 14px rgba(58, 53, 44, .18);
+}
+.btn-ghost {
+  background: linear-gradient(180deg, #fbfaf7 0%, #eeeae0 100%);
+  border-color: #c3bba8;
+  color: var(--espresso);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .8), 0 1px 3px rgba(58, 53, 44, .12);
+}
+.btn-ghost:hover { border-color: var(--gold); color: var(--gold-dark); transform: translateY(-2px); }
 .btn-block { width: 100%; }
 
 /* ---------- header ---------- */
@@ -166,18 +176,18 @@ ul { margin: 0; padding: 0; list-style: none; }
   position: relative; display: flex; align-items: center;
   padding: 70px clamp(24px, 5vw, 80px) 90px;
   background:
-    radial-gradient(120% 100% at 0% 0%, #fdf9f1 0%, var(--cream) 45%, var(--cream-2) 100%);
+    radial-gradient(120% 100% at 0% 0%, #fdfdfa 0%, var(--cream) 45%, var(--cream-2) 100%);
   overline: none;
 }
 /* faint architectural line pattern */
 .hero-copy::before {
   content: ""; position: absolute; inset: 0; z-index: -1; opacity: .5;
   background-image:
-    linear-gradient(115deg, transparent 48%, rgba(176, 141, 79, .18) 48.3%, transparent 48.7%),
-    linear-gradient(65deg,  transparent 62%, rgba(176, 141, 79, .13) 62.3%, transparent 62.7%),
-    linear-gradient(160deg, transparent 30%, rgba(176, 141, 79, .10) 30.3%, transparent 30.7%),
-    linear-gradient(to right, rgba(176, 141, 79, .07) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(176, 141, 79, .07) 1px, transparent 1px);
+    linear-gradient(115deg, transparent 48%, rgba(169, 140, 85, .18) 48.3%, transparent 48.7%),
+    linear-gradient(65deg,  transparent 62%, rgba(169, 140, 85, .13) 62.3%, transparent 62.7%),
+    linear-gradient(160deg, transparent 30%, rgba(169, 140, 85, .10) 30.3%, transparent 30.7%),
+    linear-gradient(to right, rgba(169, 140, 85, .07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(169, 140, 85, .07) 1px, transparent 1px);
   background-size: 100% 100%, 100% 100%, 100% 100%, 88px 88px, 88px 88px;
 }
 .hero-copy-inner { max-width: 620px; margin-left: auto; }
@@ -187,11 +197,11 @@ ul { margin: 0; padding: 0; list-style: none; }
   color: var(--gold-dark); margin-bottom: .9rem;
 }
 .hero h1 { margin-bottom: .55rem; }
+/* Flat ink, as in the mockup - a gradient here reads as metallic. */
 .h1-line {
   display: block;
   font-size: clamp(2.5rem, 5.2vw, 4.1rem); font-weight: 700;
-  background: linear-gradient(100deg, var(--gold-dark), var(--gold) 45%, var(--gold-soft));
-  -webkit-background-clip: text; background-clip: text; color: transparent;
+  color: var(--gold-dark);
 }
 .h1-ne {
   display: block; font-family: var(--ff-ne); font-weight: 600;
@@ -217,7 +227,7 @@ ul { margin: 0; padding: 0; list-style: none; }
   position: relative; padding: 46px 0 40px;
   background:
     linear-gradient(rgba(255, 253, 249, .82), rgba(255, 253, 249, .82)),
-    repeating-linear-gradient(112deg, #f2ece1 0 26px, #ece4d6 26px 52px, #f6f1e8 52px 86px);
+    repeating-linear-gradient(112deg, #f4f1ea 0 26px, #eeeae0 26px 52px, #f7f5ef 52px 86px);
   border-bottom: 1px solid var(--line);
 }
 .strip-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
@@ -230,8 +240,8 @@ ul { margin: 0; padding: 0; list-style: none; }
 .testimonial {
   padding: 66px 0 60px;
   background:
-    linear-gradient(rgba(232, 216, 190, .55), rgba(232, 216, 190, .55)),
-    repeating-linear-gradient(90deg, #e6d6b8 0 7px, #e1cfae 7px 14px, #eadcc2 14px 24px);
+    linear-gradient(rgba(231, 221, 205, .6), rgba(231, 221, 205, .6)),
+    repeating-linear-gradient(90deg, #e4dac6 0 7px, #ded3bd 7px 14px, #e9e1d1 14px 24px);
   text-align: center;
 }
 .tm-slides { position: relative; max-width: 760px; margin-inline: auto; min-height: 250px; }
@@ -283,7 +293,7 @@ ul { margin: 0; padding: 0; list-style: none; }
   position: absolute; right: -14px; bottom: -22px;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   width: 148px; padding: 16px 12px; text-align: center;
-  background: linear-gradient(140deg, var(--gold-soft), var(--gold-dark));
+  background: linear-gradient(140deg, var(--gold), var(--gold-dark));
   color: #fff; border-radius: 8px; box-shadow: var(--shadow-md);
 }
 .about-badge strong { font-family: var(--ff-display); font-size: 2.1rem; line-height: 1; }
@@ -334,7 +344,7 @@ ul { margin: 0; padding: 0; list-style: none; }
   border-radius: 10px; background: var(--cream-2); color: var(--gold-dark);
   transition: background .3s var(--ease), color .3s var(--ease);
 }
-.card:hover .card-icon { background: var(--gold); color: #fff; }
+.card:hover .card-icon { background: var(--gold-dark); color: #fff; }
 .card-icon svg { width: 28px; height: 28px; }
 .card h3 { font-size: 1.42rem; color: var(--espresso); }
 .card > p { font-size: .92rem; color: var(--muted); }
@@ -362,7 +372,7 @@ ul { margin: 0; padding: 0; list-style: none; }
   transition: background .25s var(--ease), color .25s var(--ease), border-color .25s var(--ease);
 }
 .filter:hover { border-color: var(--gold); color: var(--gold-dark); }
-.filter.is-active { background: var(--gold); border-color: var(--gold); color: #fff; }
+.filter.is-active { background: var(--gold-dark); border-color: var(--gold-dark); color: #fff; }
 
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(292px, 1fr)); gap: 24px; }
 .project {
@@ -384,7 +394,7 @@ ul { margin: 0; padding: 0; list-style: none; }
 .tag {
   display: inline-block; margin-bottom: 8px; padding: 3px 11px; border-radius: 999px;
   font-size: .68rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
-  background: rgba(201, 169, 105, .9); color: #2c241a;
+  background: rgba(217, 195, 150, .92); color: #31322d;
 }
 
 /* ---------- cta ---------- */
@@ -396,7 +406,6 @@ ul { margin: 0; padding: 0; list-style: none; }
 .cta-inner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 26px; }
 .cta h2 { font-size: clamp(1.7rem, 3vw, 2.5rem); color: #fff; margin-bottom: .25em; }
 .cta p { margin: 0; color: rgba(255, 253, 249, .78); max-width: 52ch; }
-.cta .btn-gold { background: linear-gradient(135deg, #f3e2bf, #dcbe86); color: var(--espresso); }
 
 /* ---------- contact ---------- */
 .contact { background: var(--white); }
@@ -425,7 +434,7 @@ ul { margin: 0; padding: 0; list-style: none; }
 }
 .contact-form textarea { resize: vertical; }
 .contact-form input:focus, .contact-form select:focus, .contact-form textarea:focus {
-  outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(176, 141, 79, .16);
+  outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(169, 140, 85, .16);
 }
 .contact-form .is-invalid { border-color: #c0553c; }
 .err { display: block; min-height: 1em; margin-top: 4px; font-size: .76rem; color: #c0553c; }
@@ -457,7 +466,7 @@ ul { margin: 0; padding: 0; list-style: none; }
 .to-top {
   position: fixed; right: 22px; bottom: 22px; z-index: 90;
   display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%;
-  background: var(--gold); color: #fff; box-shadow: var(--shadow-md);
+  background: var(--gold-dark); color: #fff; box-shadow: var(--shadow-md);
   opacity: 0; visibility: hidden; transform: translateY(12px);
   transition: opacity .3s var(--ease), transform .3s var(--ease), visibility .3s, background .25s var(--ease);
 }
