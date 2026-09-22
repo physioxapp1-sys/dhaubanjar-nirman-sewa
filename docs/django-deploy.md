@@ -25,6 +25,9 @@ cPanel → **MySQL Databases**. Create a database and a user, then add the user
 to the database with ALL PRIVILEGES. cPanel prefixes both with your account
 name, so they end up looking like `madhyapu_dhaubanjar`.
 
+This mirrors the local setup in the README: same engine, same kind of dedicated
+user, so the only difference between environments is the values in `.env`.
+
 ## 3. Configure the environment
 
 ```bash

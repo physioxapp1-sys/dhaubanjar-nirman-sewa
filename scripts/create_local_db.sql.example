@@ -1,0 +1,25 @@
+-- Local development database for the Dhaubanjar web app.
+-- Run once as an admin user:
+--     mysql -u root -p < scripts/create_local_db.sql
+--
+-- Creates the schema plus a dedicated app user. The app never runs as root.
+-- Copy this to scripts/create_local_db.sql, replace the password with the
+-- DB_PASSWORD value from your .env, then run it. The copy is gitignored
+-- because it contains a real credential; this template never does.
+
+CREATE DATABASE IF NOT EXISTS dhaubanjar
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
+
+CREATE USER IF NOT EXISTS 'dhaubanjar'@'localhost'
+  IDENTIFIED BY 'REPLACE_WITH_DB_PASSWORD_FROM_ENV';
+
+GRANT ALL PRIVILEGES ON dhaubanjar.* TO 'dhaubanjar'@'localhost';
+
+-- Django creates and drops test_dhaubanjar when running the test suite,
+-- so the app user needs rights over that name too.
+GRANT ALL PRIVILEGES ON `test_dhaubanjar`.* TO 'dhaubanjar'@'localhost';
+
+FLUSH PRIVILEGES;
+
+SELECT 'Database and user created.' AS status;

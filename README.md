@@ -8,13 +8,35 @@ Django web app for Dhaubanjar Nirman Sewa. It serves two consumers:
 ```bash
 pip install -r requirements.txt
 cp .env.example .env                      # set SECRET_KEY and DB_* values
+```
+
+### Local MySQL
+
+Development uses MySQL, same engine as production, so migrations and queries
+behave identically in both. Create the schema and a dedicated app user once:
+
+```bash
+cp scripts/create_local_db.sql.example scripts/create_local_db.sql
+# put the DB_PASSWORD from your .env into that file, then:
+mysql -u root -p < scripts/create_local_db.sql
+```
+
+The copy is gitignored because it carries a real password; the `.example`
+template never does. The app deliberately does not connect as `root`.
+
+Django creates and drops `test_dhaubanjar` when running tests, which is why the
+script grants rights over that name too.
+
+```bash
 python manage.py migrate
 python manage.py createsuperuser
 python manage.py import_catalog ../pakka-homes/xlsx/data.xlsx
 python manage.py runserver
 ```
 
-To work without MySQL, put `DB_ENGINE=sqlite` in `.env`.
+`DB_ENGINE=sqlite` still works as an escape hatch if MySQL is unavailable, but
+it is not the default — SQLite is lax about constraints and column types that
+MySQL enforces, so a green test run there proves less.
 
 > **Note:** the site is still *deployed* as static files (see Deployment). `index.html`
 > is that static copy; `templates/website/home.html` is the Django version. They are
