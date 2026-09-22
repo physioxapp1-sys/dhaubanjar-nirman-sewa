@@ -1,0 +1,9 @@
+---
+deployment:
+  tasks:
+    # Document root for dhaubanjarnirmansewa.com.np (must end with a slash).
+    - export DEPLOYPATH=/home2/madhyapu/dhaubanjarnirmansewa.com.np/
+
+    - /bin/mkdir -p $DEPLOYPATH/assets
+    - /bin/cp -R index.html $DEPLOYPATH
+    - /bin/cp -R assets/. $DEPLOYPATH/assets/
