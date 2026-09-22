@@ -225,20 +225,50 @@
         return;
       }
 
-      /* No backend wired up yet — swap this block for a fetch() to your
-         endpoint (Formspree, Netlify Forms, or your own API). */
+      var endpoint = form.dataset.endpoint;
       var btn = $('button[type="submit"]', form);
       var label = btn.textContent;
       btn.disabled = true;
       btn.textContent = 'Sending…';
 
-      setTimeout(function () {
+      var payload = {};
+      fields.forEach(function (input) {
+        if (input.name) payload[input.name] = input.value.trim();
+      });
+
+      fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(payload)
+      }).then(function (res) {
+        return res.json().then(function (body) { return { ok: res.ok, body: body }; });
+      }).then(function (r) {
+        if (!r.ok) {
+          /* DRF returns {field: [messages]} - surface them on the fields. */
+          var shown = false;
+          Object.keys(r.body || {}).forEach(function (key) {
+            var input = $('[name="' + key + '"]', form);
+            var msg = [].concat(r.body[key]).join(' ');
+            if (input) {
+              input.classList.add('is-invalid');
+              var slot = input.parentElement.querySelector('.err');
+              if (slot) { slot.textContent = msg; shown = true; }
+            }
+          });
+          note.textContent = shown
+            ? 'Please check the highlighted fields.'
+            : 'Sorry, something went wrong. Please call us instead.';
+          return;
+        }
+        form.reset();
+        note.textContent = (r.body && r.body.detail) || successMsg;
+        setTimeout(function () { note.textContent = ''; }, 8000);
+      }).catch(function () {
+        note.textContent = 'Could not reach the server. Please call us instead.';
+      }).then(function () {
         btn.disabled = false;
         btn.textContent = label;
-        form.reset();
-        note.textContent = successMsg;
-        setTimeout(function () { note.textContent = ''; }, 6000);
-      }, 900);
+      });
     });
   }
 

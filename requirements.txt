@@ -1,0 +1,7 @@
+Django==5.2.13
+djangorestframework==3.18.1
+django-cors-headers
+python-dotenv
+PyMySQL
+openpyxl
+Pillow
