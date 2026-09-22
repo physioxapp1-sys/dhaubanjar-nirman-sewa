@@ -68,5 +68,18 @@ update `index.html` (canonical, `og:url`, `og:image`, and the JSON-LD `@id`, `ur
 
 ## Colours
 
-All colours are CSS custom properties in `:root` at the top of `styles.css`.
-Changing `--gold`, `--cream` and `--espresso` re-themes the whole site.
+All colours are CSS custom properties in `:root` at the top of `styles.css`,
+following the design brief:
+
+| Token | Hex | Role |
+|---|---|---|
+| `--cream` | `#F4F2EE` | alabaster white — page background |
+| `--cream-2` | `#E6E1DA` | champagne sand — cards and bands |
+| `--espresso` / `--ink` | `#3A332C` | charcoal-bronze — bold typography |
+| `--bronze` | `#A38363` | brushed bronze — CTAs and micro-interactions |
+
+`--bronze-dark` (`#7F6448`) exists because `#A38363` only reaches 3.5:1 against
+both white and charcoal, which fails WCAG AA for normal-size text. Button fills
+and small bronze text use the deeper shade; the exact `#A38363` carries borders,
+icons, hover underlines and the hero headline, where the type is large enough to
+pass. If you change `--bronze`, re-check those pairs.
