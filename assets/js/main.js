@@ -226,6 +226,14 @@
       }
 
       var endpoint = form.dataset.endpoint;
+      if (!endpoint) {
+        /* Never show a success message we cannot back up - a visitor who
+           believes they made contact and hears nothing is worse off than
+           one who is told to phone. */
+        note.textContent = 'Online enquiries are not available yet — '
+          + 'please call +977 9841042319.';
+        return;
+      }
       var btn = $('button[type="submit"]', form);
       var label = btn.textContent;
       btn.disabled = true;
@@ -257,14 +265,14 @@
           });
           note.textContent = shown
             ? 'Please check the highlighted fields.'
-            : 'Sorry, something went wrong. Please call us instead.';
+            : 'Sorry, something went wrong — please call +977 9841042319.';
           return;
         }
         form.reset();
         note.textContent = (r.body && r.body.detail) || successMsg;
         setTimeout(function () { note.textContent = ''; }, 8000);
       }).catch(function () {
-        note.textContent = 'Could not reach the server. Please call us instead.';
+        note.textContent = 'Could not reach the server — please call +977 9841042319.';
       }).then(function () {
         btn.disabled = false;
         btn.textContent = label;
