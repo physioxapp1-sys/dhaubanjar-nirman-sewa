@@ -1,12 +1,15 @@
 ---
+# NOT the active deploy path. The app is a plain `git clone` directly at
+# /home2/madhyapu/dhaubanjar-nirman-sewa (not inside cPanel's Git Version
+# Control "repositories/" folder - that folder's tighter permissions
+# silently blocked LiteSpeed's Passenger worker from ever starting).
+# Deploys happen via `git pull` there, using deploy.sh as the post-merge
+# hook. This file is kept only in case Git Version Control is used again
+# for something else later.
 deployment:
   tasks:
-    # The site is served by Django through Passenger now, so nothing is
-    # copied into the document root: index.html, robots.txt and sitemap.xml
-    # living there would be served by Apache and Passenger would never see
-    # the request. Deploys run collectstatic/migrate and restart instead.
-    - export APPROOT=/home2/madhyapu/repositories/dhaubanjar-nirman-sewa
-    - export VENVPY=/home2/madhyapu/virtualenv/repositories/dhaubanjar-nirman-sewa/3.11/bin/python
+    - export APPROOT=/home2/madhyapu/dhaubanjar-nirman-sewa
+    - export VENVPY=/home2/madhyapu/virtualenv/dhaubanjar-nirman-sewa/3.11/bin/python
     - cd $APPROOT && $VENVPY manage.py collectstatic --noinput
     - cd $APPROOT && $VENVPY manage.py migrate --noinput
     - /bin/mkdir -p $APPROOT/tmp

@@ -102,28 +102,44 @@ contact details that disagree between the page and the structured data.
 
 ## Deployment
 
-The site is served by Django through Passenger on cPanel. Install the hook once:
+The site is served by Django through Passenger on cPanel, deployed as a
+**plain `git clone`** directly at `/home2/madhyapu/dhaubanjar-nirman-sewa` —
+deliberately *not* inside cPanel's Git Version Control "repositories/" folder.
+That folder's tighter default permissions silently blocked LiteSpeed's
+Passenger worker from ever starting: the app showed as "started" in cPanel,
+`.htaccess` was correct, but no process was ever spawned and every request
+fell through to a generic 404. Moving the deployed copy to a plain folder
+(matching how the account's other working Python apps are set up) fixed it.
+
+Install the hook once:
 
 ```bash
-cd ~/repositories/dhaubanjar-nirman-sewa
+cd ~/dhaubanjar-nirman-sewa
 chmod +x deploy.sh
-ln -sf ../../deploy.sh .git/hooks/post-merge
+ln -sf ../deploy.sh .git/hooks/post-merge
 ```
 
 From then on, deploying is one command:
 
 ```bash
-cd ~/repositories/dhaubanjar-nirman-sewa && git pull
+cd ~/dhaubanjar-nirman-sewa && git pull
 ```
 
 `deploy.sh` runs `collectstatic`, applies migrations and touches
-`tmp/restart.txt`, which is what makes Passenger reload.
+`tmp/restart.txt`, which is what makes Passenger reload. It locates the repo
+root itself, so it works regardless of the clone's path.
 
 > **The document root must not contain `index.html`, `robots.txt` or
 > `sitemap.xml`.** Apache serves matching files directly and Passenger never
 > sees the request, so the old static page would silently shadow the app —
 > the site looks fine while `/admin/` and `/api/` return 404. Django serves
 > all three itself.
+
+> **cPanel's Setup Python App regenerates `passenger_wsgi.py` with a broken
+> template on Create/Delete.** Its stub tries to reload itself via
+> `imp.load_source('wsgi', 'passenger_wsgi.py')`, which recurses infinitely.
+> After creating or recreating the app, always run
+> `git checkout -- passenger_wsgi.py` before testing.
 
 Full first-time setup, including the cPanel Python app and the MySQL database,
 is in [docs/django-deploy.md](docs/django-deploy.md).
