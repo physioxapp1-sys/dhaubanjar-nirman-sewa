@@ -63,6 +63,9 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # Serves /static/ itself. Passenger does not, and with DEBUG off neither
+    # does Django, so without this the deployed site renders unstyled.
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -157,6 +160,17 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+# Hashed filenames plus gzip/brotli, so static files can be cached forever and
+# a deploy invalidates them automatically. collectstatic must run before the
+# app starts, or templates referencing a missing file will raise.
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"
+    },
+}
+WHITENOISE_MAX_AGE = 31536000
 
 # --------------------------------------------------------------------------
 # DRF

@@ -31,6 +31,19 @@ urlpatterns = [
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+else:
+    # WhiteNoise handles /static/, but not /media/ - and Passenger serves
+    # neither. Uploaded catalog images would 404 without this. Django's own
+    # file serving is slower than Apache's and is not meant for heavy traffic;
+    # at this scale (a brochure site plus a few hundred catalog images) that
+    # is an acceptable trade for not hand-editing Apache config on shared
+    # hosting. Move /media/ to an Apache alias if image traffic ever grows.
+    from django.views.static import serve as _serve
+    from django.urls import re_path
+
+    urlpatterns += [
+        re_path(r"^media/(?P<path>.*)$", _serve, {"document_root": settings.MEDIA_ROOT}),
+    ]
 
 admin.site.site_header = "Dhaubanjar Nirman Sewa"
 admin.site.site_title = "Dhaubanjar admin"

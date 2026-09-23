@@ -55,12 +55,20 @@ python manage.py createsuperuser
 python manage.py import_catalog ../../pakka-homes/xlsx/data.xlsx
 ```
 
-## 5. Serving static files
+## 5. Static and media files
 
-Passenger does not serve `/static/` itself. `collectstatic` writes to
-`staticfiles/`, so point the document root at it or add an alias. The simplest
-option on cPanel is to keep copying `assets/` into the document root as now —
-the URLs already match.
+Nothing to configure — WhiteNoise serves `/static/` from inside the app, which
+is why `collectstatic` must run before the first request. Files are served with
+hashed names and a one-year immutable cache, so a deploy invalidates them
+automatically and browsers never serve a stale stylesheet.
+
+`/media/` (images uploaded through the admin) is served by Django itself. That
+is slower than Apache would be and is a deliberate trade at this scale; move it
+to an Apache alias if image traffic ever grows.
+
+**If you skip `collectstatic`, the site raises an error rather than rendering
+unstyled** — the manifest storage treats a missing file as a hard failure. That
+is intentional: a loud failure at deploy time beats a silently broken page.
 
 ## 6. Deploying changes
 
@@ -73,6 +81,9 @@ python manage.py migrate             # only when migrations are added
 python manage.py collectstatic --noinput
 touch tmp/restart.txt
 ```
+
+`collectstatic` is not optional after any change to CSS, JS or images: the
+hashed filenames in the manifest change, and the old ones stop resolving.
 
 `touch tmp/restart.txt` is what reloads the app — Passenger watches that file.
 Create the directory once with `mkdir -p tmp`.
