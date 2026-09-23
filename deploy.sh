@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copies the site into the document root.
+# Deploy the Django app.
 #
 # Install once as a git hook so that `git pull` deploys by itself:
 #
@@ -16,10 +16,6 @@
 
 set -euo pipefail
 
-# Overridable so the script can be exercised against a scratch directory:
-#     DEPLOYPATH=/tmp/testroot ./deploy.sh
-DEPLOYPATH="${DEPLOYPATH:-/home2/madhyapu/dhaubanjarnirmansewa.com.np}"
-
 # Locating the repo is the one genuinely fiddly part. As a git hook this
 # file is reached through the SYMLINK at .git/hooks/post-merge, and bash
 # reports the symlink's own path in BASH_SOURCE without resolving it - so
@@ -27,8 +23,7 @@ DEPLOYPATH="${DEPLOYPATH:-/home2/madhyapu/dhaubanjarnirmansewa.com.np}"
 # runs hooks from the top of the working tree, so ask it first.
 SRC="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 
-# Fallbacks for when this is run directly from outside a repo.
-if [ -z "$SRC" ] || [ ! -e "$SRC/index.html" ]; then
+if [ -z "$SRC" ] || [ ! -e "$SRC/manage.py" ]; then
   SELF="${BASH_SOURCE[0]}"
   if command -v readlink >/dev/null 2>&1; then
     SELF="$(readlink -f "$SELF" 2>/dev/null || echo "$SELF")"
@@ -36,32 +31,37 @@ if [ -z "$SRC" ] || [ ! -e "$SRC/index.html" ]; then
   SRC="$(cd "$(dirname "$SELF")" && pwd)"
 fi
 
-# Refuse to touch anything unless the source really is the site.
-for required in index.html robots.txt sitemap.xml assets/css/styles.css; do
+for required in manage.py config/settings.py requirements.txt; do
   if [ ! -e "$SRC/$required" ]; then
-    echo "ERROR: $SRC does not look like the site (missing $required)" >&2
+    echo "ERROR: $SRC does not look like the app (missing $required)" >&2
     exit 1
   fi
 done
 
-if [ ! -d "$DEPLOYPATH" ]; then
-  echo "ERROR: document root not found: $DEPLOYPATH" >&2
+cd "$SRC"
+
+# The virtualenv is not active inside a git hook, so call its python directly.
+VENV_PY="${VENV_PY:-$HOME/virtualenv/repositories/dhaubanjar-nirman-sewa/3.11/bin/python}"
+if [ ! -x "$VENV_PY" ]; then
+  echo "ERROR: virtualenv python not found at $VENV_PY" >&2
+  echo "       set VENV_PY=/path/to/bin/python and re-run." >&2
   exit 1
 fi
 
-# Stage assets/ beside the live copy, then swap it in. The old directory is
-# only removed once the new one is complete, so a failed or interrupted copy
-# can never leave the site without its stylesheet and images.
-STAGE="$DEPLOYPATH/.assets-incoming"
-rm -rf "$STAGE"
-mkdir -p "$STAGE"
-cp -r "$SRC/assets/." "$STAGE/"
+echo "==> collectstatic"
+# Not optional: filenames are content-hashed, so skipping this leaves the
+# manifest pointing at files that no longer exist and the site 500s.
+"$VENV_PY" manage.py collectstatic --noinput
 
-rm -rf "$DEPLOYPATH/assets"
-mv "$STAGE" "$DEPLOYPATH/assets"
+echo "==> migrate"
+"$VENV_PY" manage.py migrate --noinput
 
-# Everything else is copied in place and never deleted, which is what keeps
-# cgi-bin, php.ini, .user.ini, .well-known and .htaccess safe.
-cp "$SRC/index.html" "$SRC/robots.txt" "$SRC/sitemap.xml" "$DEPLOYPATH/"
+echo "==> restart"
+# Passenger reloads when this file's mtime changes.
+mkdir -p tmp && touch tmp/restart.txt
 
-echo "Deployed $(git -C "$SRC" rev-parse --short HEAD 2>/dev/null || echo '?') to $DEPLOYPATH"
+echo "Deployed $(git -C "$SRC" rev-parse --short HEAD 2>/dev/null || echo '?')"
+echo
+echo "NOTE: index.html, robots.txt and sitemap.xml are served by Django now."
+echo "      They must NOT exist in the document root - Apache would serve"
+echo "      them and Passenger would never see the request."

@@ -88,6 +88,24 @@ hashed filenames in the manifest change, and the old ones stop resolving.
 `touch tmp/restart.txt` is what reloads the app — Passenger watches that file.
 Create the directory once with `mkdir -p tmp`.
 
+## Clearing the old static site
+
+cPanel points the domain at Passenger, but Apache still serves any real file
+it finds in the document root first. The static deploy left three there, and
+`index.html` will shadow the whole app — the homepage looks fine while
+`/admin/` and `/api/` return 404.
+
+```bash
+mkdir -p ~/docroot-static-backup
+cd /home2/madhyapu/dhaubanjarnirmansewa.com.np/
+mv index.html robots.txt sitemap.xml ~/docroot-static-backup/
+touch ~/repositories/dhaubanjar-nirman-sewa/tmp/restart.txt
+```
+
+Leave `assets/` alone: it is harmless, and keeping it means the old URLs still
+resolve for anything that cached them. Django serves its own copies under
+`/static/` with hashed names.
+
 ## Checks
 
 ```bash

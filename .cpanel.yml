@@ -1,11 +1,13 @@
 ---
 deployment:
   tasks:
-    # Document root for dhaubanjarnirmansewa.com.np (must end with a slash).
-    - export DEPLOYPATH=/home2/madhyapu/dhaubanjarnirmansewa.com.np/
-
-    - /bin/mkdir -p $DEPLOYPATH/assets
-    - /bin/cp -R index.html $DEPLOYPATH
-    - /bin/cp -R robots.txt $DEPLOYPATH
-    - /bin/cp -R sitemap.xml $DEPLOYPATH
-    - /bin/cp -R assets/. $DEPLOYPATH/assets/
+    # The site is served by Django through Passenger now, so nothing is
+    # copied into the document root: index.html, robots.txt and sitemap.xml
+    # living there would be served by Apache and Passenger would never see
+    # the request. Deploys run collectstatic/migrate and restart instead.
+    - export APPROOT=/home2/madhyapu/repositories/dhaubanjar-nirman-sewa
+    - export VENVPY=/home2/madhyapu/virtualenv/repositories/dhaubanjar-nirman-sewa/3.11/bin/python
+    - cd $APPROOT && $VENVPY manage.py collectstatic --noinput
+    - cd $APPROOT && $VENVPY manage.py migrate --noinput
+    - /bin/mkdir -p $APPROOT/tmp
+    - /usr/bin/touch $APPROOT/tmp/restart.txt

@@ -38,11 +38,6 @@ python manage.py runserver
 it is not the default — SQLite is lax about constraints and column types that
 MySQL enforces, so a green test run there proves less.
 
-> **Note:** the site is still *deployed* as static files (see Deployment). `index.html`
-> is that static copy; `templates/website/home.html` is the Django version. They are
-> currently duplicates — delete `index.html` once Django serves the site, so edits
-> cannot land in only one of them.
-
 ## API
 
 | Endpoint | Purpose |
@@ -75,8 +70,7 @@ config/               settings, urls, wsgi
 catalog/              Category + Subcategory, API, xlsx importer
 enquiries/            Enquiry model and the write-only submission endpoint
 website/              public page views
-templates/website/    home.html (Django version of the page)
-index.html            static copy of the page, used by the current deploy
+templates/website/    home.html, robots.txt, sitemap.xml (all served by Django)
 assets/css/styles.css single stylesheet; the palette lives in :root at the top
 assets/js/main.js     menu, dropdown, scroll spy, counters, slider, filter, forms
 assets/img/           hero photo plus placeholder artwork
@@ -87,7 +81,7 @@ passenger_wsgi.py     cPanel entry point
 
 **1. Replace the placeholder artwork.** Every image in `assets/img/` is a generated
 SVG standing in for a real photo. Drop your own files in and update the `src`
-attributes in `index.html`:
+attributes in `templates/website/home.html`:
 
 | File | Used for | Suggested size |
 |---|---|---|
@@ -108,7 +102,7 @@ contact details that disagree between the page and the structured data.
 
 ## Deployment
 
-Install the hook once on the server:
+The site is served by Django through Passenger on cPanel. Install the hook once:
 
 ```bash
 cd ~/repositories/dhaubanjar-nirman-sewa
@@ -122,18 +116,17 @@ From then on, deploying is one command:
 cd ~/repositories/dhaubanjar-nirman-sewa && git pull
 ```
 
-Django deployment on cPanel is documented separately in
-[docs/django-deploy.md](docs/django-deploy.md); the static deploy below is what runs today.
+`deploy.sh` runs `collectstatic`, applies migrations and touches
+`tmp/restart.txt`, which is what makes Passenger reload.
 
-`deploy.sh` replaces `assets/` wholesale (so removed files do not linger) and
-copies `index.html`, `robots.txt` and `sitemap.xml` in place. It never deletes
-anything else, so `cgi-bin`, `php.ini`, `.user.ini`, `.well-known` and `.htaccess`
-in the document root are untouched. `.cpanel.yml` does the same work for cPanel's
-**Deploy HEAD Commit** button, if you prefer clicking.
+> **The document root must not contain `index.html`, `robots.txt` or
+> `sitemap.xml`.** Apache serves matching files directly and Passenger never
+> sees the request, so the old static page would silently shadow the app —
+> the site looks fine while `/admin/` and `/api/` return 404. Django serves
+> all three itself.
 
-The canonical hostname is **www.dhaubanjarnirmansewa.com.np**. If it ever changes,
-update `index.html` (canonical, `og:url`, `og:image`, and the JSON-LD `@id`, `url`,
-`image`, `logo`), `sitemap.xml`, `robots.txt`, and the `.htaccess` redirect.
+Full first-time setup, including the cPanel Python app and the MySQL database,
+is in [docs/django-deploy.md](docs/django-deploy.md).
 
 ## Colours
 
