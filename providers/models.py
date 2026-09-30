@@ -14,6 +14,18 @@ from django.utils.text import slugify
 from catalog.models import RateUnit, TimeStamped
 
 
+class Engagement(models.TextChoices):
+    """Whether we employ this person or subcontract to them.
+
+    Internal only. The customer books Pakka Homes and Pakka Homes stands
+    behind the work either way - exposing the split would turn one promise
+    into two tiers, and the partner tier would read as "not guaranteed".
+    """
+
+    IN_HOUSE = "in_house", "Own crew"
+    PARTNER = "partner", "Partner"
+
+
 class Trade(models.TextChoices):
     CONTRACTOR = "contractor", "Contractor"
     ELECTRICIAN = "electrician", "Electrician"
@@ -31,6 +43,13 @@ class Provider(TimeStamped):
     name = models.CharField(max_length=140)
     slug = models.SlugField(max_length=160, unique=True)
     trade = models.CharField(max_length=20, choices=Trade.choices, db_index=True)
+    engagement = models.CharField(
+        max_length=12,
+        choices=Engagement.choices,
+        default=Engagement.PARTNER,
+        db_index=True,
+        help_text="Partner unless they are on our own crew. Never shown to customers.",
+    )
 
     categories = models.ManyToManyField(
         "catalog.Category",

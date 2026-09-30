@@ -1,18 +1,25 @@
 from catalog.models import Vertical
-from rest_framework import viewsets
+from rest_framework import permissions, viewsets
 
 from .models import Provider, Trade
 from .serializers import ProviderSerializer
 
 
 class ProviderViewSet(viewsets.ReadOnlyModelViewSet):
-    """Providers, filtered to what a category screen needs.
+    """The dispatch roster. Staff only.
 
         GET /api/v1/providers/?category=construction&vertical=service
         GET /api/v1/providers/?trade=electrician&available=true
+
+    Not public, for two reasons. The customer books Pakka Homes and we
+    assign someone, so the app has no need for it. And the roster is a list
+    of tradespeople with phone numbers: published, it invites both poaching
+    by competitors and customers going direct on the second job, which is
+    where the margin is.
     """
 
     serializer_class = ProviderSerializer
+    permission_classes = [permissions.IsAdminUser]
     lookup_field = "slug"
 
     def get_queryset(self):

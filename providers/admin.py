@@ -7,10 +7,10 @@ from .models import Provider
 @admin.register(Provider)
 class ProviderAdmin(admin.ModelAdmin):
     list_display = [
-        "name", "trade", "service_area", "rating", "review_count",
+        "name", "trade", "engagement", "service_area", "rating", "review_count",
         "display_rate", "is_available", "is_verified", "is_active", "thumb",
     ]
-    list_filter = ["trade", "is_available", "is_verified", "is_active", "categories"]
+    list_filter = ["engagement", "trade", "is_available", "is_verified", "is_active", "categories"]
     list_editable = ["is_available", "is_verified", "is_active"]
     search_fields = ["name", "slug", "phone", "service_area"]
     prepopulated_fields = {"slug": ("name",)}
@@ -20,7 +20,7 @@ class ProviderAdmin(admin.ModelAdmin):
     filter_horizontal = ["categories"]
 
     fieldsets = [
-        (None, {"fields": ["name", "slug", "trade", "categories", "about"]}),
+        (None, {"fields": ["name", "slug", "trade", "engagement", "categories", "about"]}),
         ("Contact", {"fields": ["phone", "email", "service_area", "photo"]}),
         ("Standing", {"fields": ["experience_years", "rating", "review_count", "is_verified"]}),
         ("Pricing", {"fields": ["rate", "rate_unit"]}),

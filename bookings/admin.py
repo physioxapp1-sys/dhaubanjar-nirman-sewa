@@ -9,7 +9,12 @@ class BookingAdmin(admin.ModelAdmin):
         "reference", "contact_name", "contact_phone", "subcategory",
         "provider", "scheduled_date", "slot", "status", "created_at",
     ]
-    list_filter = ["status", "slot", "source", "created_at", "provider"]
+    # The empty-provider filter is the dispatch queue: bookings taken but
+    # nobody sent yet.
+    list_filter = [
+        ("provider", admin.EmptyFieldListFilter),
+        "status", "slot", "source", "created_at", "provider",
+    ]
     list_editable = ["status"]
     search_fields = ["reference", "contact_name", "contact_phone", "address"]
     date_hierarchy = "created_at"
