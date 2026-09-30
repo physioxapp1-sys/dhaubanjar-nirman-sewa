@@ -4,6 +4,7 @@ from django.contrib import admin
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
+from accounts.views import LoginView, LogoutView, MeView, RegisterView
 from bookings.views import BookingCreateView, BookingLookupView, MyBookingListView
 from catalog.views import CategoryViewSet, SubcategoryViewSet
 from enquiries.views import EnquiryCreateView
@@ -17,6 +18,10 @@ router.register("providers", ProviderViewSet, basename="provider")
 
 api_v1 = [
     path("", include(router.urls)),
+    path("auth/register/", RegisterView.as_view(), name="auth-register"),
+    path("auth/login/", LoginView.as_view(), name="auth-login"),
+    path("auth/logout/", LogoutView.as_view(), name="auth-logout"),
+    path("auth/me/", MeView.as_view(), name="auth-me"),
     path("enquiries/", EnquiryCreateView.as_view(), name="enquiry-create"),
     path("bookings/", BookingCreateView.as_view(), name="booking-create"),
     path("bookings/mine/", MyBookingListView.as_view(), name="booking-mine"),

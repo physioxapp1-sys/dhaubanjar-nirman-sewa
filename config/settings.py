@@ -54,8 +54,10 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # third party
     "rest_framework",
+    "rest_framework.authtoken",
     "corsheaders",
     # local
+    "accounts",
     "bookings",
     "catalog",
     "enquiries",
@@ -179,6 +181,12 @@ WHITENOISE_MAX_AGE = 31536000
 # --------------------------------------------------------------------------
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.AllowAny"],
+    # Token, not session: the app has no cookie jar and no CSRF token. Views
+    # that need a user say so with IsAuthenticated; browsing stays anonymous.
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.TokenAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+    ],
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 50,
@@ -186,7 +194,13 @@ REST_FRAMEWORK = {
     # Rate limits apply to the write endpoints - see each view's
     # throttle_scope. Bookings are looser than enquiries: a household
     # legitimately books several jobs in one sitting.
-    "DEFAULT_THROTTLE_RATES": {"enquiry": "12/hour", "booking": "20/hour"},
+    # 'auth' covers register and login together, which is what slows down
+    # someone working through a list of numbers guessing passwords.
+    "DEFAULT_THROTTLE_RATES": {
+        "enquiry": "12/hour",
+        "booking": "20/hour",
+        "auth": "10/hour",
+    },
 }
 
 if DEBUG:
