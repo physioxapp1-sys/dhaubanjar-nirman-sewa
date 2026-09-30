@@ -114,6 +114,7 @@ class Command(BaseCommand):
                 continue
 
             names = [n for n in rest if n.lower() not in SKIP_CELLS]
+            names = [n for n in names if not self._is_junk(n, head)]
             # De-duplicate within a row while keeping sheet order: a couple of
             # rows repeat a name ('Boundary Wall' twice under Construction).
             names = list(dict.fromkeys(names))
@@ -139,6 +140,31 @@ class Command(BaseCommand):
             stale = Category.objects.filter(vertical=vertical, is_active=True).exclude(
                 pk__in=[p for p in seen_categories if p])
             stats["pruned"] += stale.update(is_active=False)
+
+    def _is_junk(self, name, category):
+        """Reject cells that are not really a subcategory.
+
+        The shop sheet carries a helper column per row holding that row's own
+        names comma-joined inside parentheses. Left alone it imports as one
+        absurd subcategory - and on MySQL, where VARCHAR length is enforced,
+        it aborts the whole run with "Data too long for column 'name'".
+        SQLite does not enforce length, so this only ever surfaced in
+        production. The length check is the general guard; the parenthesis
+        check catches the shorter helper cells too.
+        """
+        limit = Subcategory._meta.get_field("name").max_length
+        reason = None
+        if name.startswith("(") and "," in name:
+            reason = "looks like a joined helper cell"
+        elif len(name) > limit:
+            reason = f"longer than {limit} characters"
+
+        if reason:
+            self.stdout.write(self.style.WARNING(
+                f"  skipped a cell under {category} ({reason}): {name[:60]}..."
+            ))
+            return True
+        return False
 
     def _upsert_category(self, name, vertical, order, opts, stats):
         slug = slugify(name)[:140]
