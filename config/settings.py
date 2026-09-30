@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     # local
+    "bookings",
     "catalog",
     "enquiries",
     "providers",
@@ -182,9 +183,10 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 50,
     "DEFAULT_THROTTLE_CLASSES": ["rest_framework.throttling.ScopedRateThrottle"],
-    # Enquiry submission is the only write endpoint, so it is the only one
-    # that needs a rate limit - see EnquiryCreateView.throttle_scope.
-    "DEFAULT_THROTTLE_RATES": {"enquiry": "12/hour"},
+    # Rate limits apply to the write endpoints - see each view's
+    # throttle_scope. Bookings are looser than enquiries: a household
+    # legitimately books several jobs in one sitting.
+    "DEFAULT_THROTTLE_RATES": {"enquiry": "12/hour", "booking": "20/hour"},
 }
 
 if DEBUG:
