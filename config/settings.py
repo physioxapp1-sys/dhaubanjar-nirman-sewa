@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     # local
     "catalog",
     "enquiries",
+    "providers",
     "website",
 ]
 
