@@ -9,6 +9,12 @@ so blank cells are skipped rather than treated as positional.
 Idempotent - re-running updates in place and never duplicates. Rates and
 images set in the admin are preserved unless --overwrite-rates is passed.
 
+With no path it reads the copy vendored at catalog/data/catalog.xlsx, so a
+deploy does not need the app repo checked out beside this one - the server
+has no reason to carry 150MB of app artwork just to read a 21KB sheet. Keep
+that copy in step with the app's xlsx/ when the catalog changes.
+
+    python manage.py import_catalog
     python manage.py import_catalog ../pakka-homes/xlsx/data.xlsx
     python manage.py import_catalog <path> --dry-run
     python manage.py import_catalog <path> --prune
@@ -32,12 +38,20 @@ SHEET_VERTICALS = {
 # Cells that are structural rather than data.
 SKIP_CELLS = {"rate", "alias", "main category", "subcategories", ""}
 
+# Shipped with the app so `import_catalog` works on a bare server checkout.
+BUNDLED_WORKBOOK = Path(__file__).resolve().parents[2] / "data" / "catalog.xlsx"
+
 
 class Command(BaseCommand):
     help = "Import the Pakka Homes catalog from an xlsx workbook."
 
     def add_arguments(self, parser):
-        parser.add_argument("workbook", type=str, help="Path to data.xlsx")
+        parser.add_argument(
+            "workbook",
+            type=str,
+            nargs="?",
+            help=f"Path to the xlsx. Defaults to {BUNDLED_WORKBOOK.name} in catalog/data/.",
+        )
         parser.add_argument("--dry-run", action="store_true",
                             help="Report what would change without writing.")
         parser.add_argument("--overwrite-rates", action="store_true",
@@ -51,7 +65,11 @@ class Command(BaseCommand):
         except ImportError as exc:
             raise CommandError("openpyxl is required: pip install openpyxl") from exc
 
-        path = Path(opts["workbook"]).expanduser()
+        path = (
+            Path(opts["workbook"]).expanduser()
+            if opts["workbook"]
+            else BUNDLED_WORKBOOK
+        )
         if not path.exists():
             raise CommandError(f"Workbook not found: {path}")
 
