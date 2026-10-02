@@ -196,10 +196,14 @@ REST_FRAMEWORK = {
     # legitimately books several jobs in one sitting.
     # 'auth' covers register and login together, which is what slows down
     # someone working through a list of numbers guessing passwords.
+    # 'password_reset' is separate and tighter: issuing a code is cheap to
+    # spam (no password needed to ask for one), and resetting is the one
+    # endpoint that lets someone try many codes against one account.
     "DEFAULT_THROTTLE_RATES": {
         "enquiry": "12/hour",
         "booking": "20/hour",
         "auth": "10/hour",
+        "password_reset": "5/hour",
     },
 }
 
