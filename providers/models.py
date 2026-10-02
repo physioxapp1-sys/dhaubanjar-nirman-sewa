@@ -67,6 +67,20 @@ class Provider(TimeStamped):
         help_text="Which catalog categories this provider is listed under.",
     )
 
+    # A contractor's crew, not an org chart - this is how staff answer "who
+    # works for this contractor" without a separate crew-membership model.
+    # Self-referencing rather than a boolean "is_contractor" flag: trade
+    # already says CONTRACTOR, and nothing stops a contractor from also
+    # being someone else's worker on a bigger job.
+    manager = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="workers",
+        help_text="The contractor this worker reports to, if any.",
+    )
+
     phone = models.CharField(max_length=32, blank=True)
     email = models.EmailField(blank=True)
     photo = models.ImageField(upload_to="providers/", blank=True, null=True)

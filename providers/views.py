@@ -28,6 +28,7 @@ class ProviderViewSet(viewsets.ReadOnlyModelViewSet):
         GET /api/v1/providers/?trade=electrician&available=true
         GET /api/v1/providers/?min_jobs_completed=5
         GET /api/v1/providers/?worked_subcategory=new-wiring
+        GET /api/v1/providers/?manager=ram-thapa-contractor
         GET /api/v1/providers/?ordering=-total_earned
 
     Not public, for two reasons. The customer books Pakka Homes and we
@@ -52,6 +53,7 @@ class ProviderViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         qs = (
             Provider.objects.filter(is_active=True)
+            .select_related("manager")
             .prefetch_related("categories", _completed_bookings_prefetch)
             .annotate(
                 jobs_completed=Count("bookings", filter=_COMPLETED, distinct=True),
@@ -71,6 +73,10 @@ class ProviderViewSet(viewsets.ReadOnlyModelViewSet):
             qs = qs.filter(trade=p["trade"])
         if str(p.get("available", "")).lower() in ("1", "true", "yes"):
             qs = qs.filter(is_available=True)
+        if p.get("manager"):
+            # manager is a to-one FK, so unlike categories/bookings below
+            # this never multiplies rows - no Exists() needed here.
+            qs = qs.filter(manager__slug=p["manager"])
 
         # Proven experience, not the self-reported trade label: has this
         # provider actually completed a job in this specific subcategory,

@@ -161,3 +161,52 @@ class ProviderSearchAndProfileTests(TestCase):
         names = {p["name"] for p in res.json()} if isinstance(res.json(), list) \
             else {p["name"] for p in res.json()["results"]}
         self.assertEqual(names, {"Shyam Lama"})
+
+
+class ProviderManagerTests(TestCase):
+    """A contractor's crew: who reports to whom, and the ?manager= filter
+    that lets staff pull up one contractor's workers."""
+
+    def setUp(self):
+        self.staff = User.objects.create_user(username="dispatcher", password="x", is_staff=True)
+        self.client.force_login(self.staff)
+        self.contractor = make_provider(name="Bikram Contractor", trade=Trade.CONTRACTOR)
+        self.worker1 = make_provider(name="Hari Gurung", trade=Trade.MASON, manager=self.contractor)
+        self.worker2 = make_provider(name="Shyam Lama", trade=Trade.PAINTER, manager=self.contractor)
+        self.unrelated = make_provider(name="Gita Rai", trade=Trade.CLEANER)
+
+    def _names(self, res):
+        data = res.json()
+        rows = data if isinstance(data, list) else data["results"]
+        return {p["name"] for p in rows}
+
+    def test_manager_filter_returns_only_that_contractors_workers(self):
+        res = self.client.get(f"/api/v1/providers/?manager={self.contractor.slug}")
+        self.assertEqual(self._names(res), {"Hari Gurung", "Shyam Lama"})
+
+    def test_providers_without_a_manager_are_unaffected(self):
+        res = self.client.get("/api/v1/providers/")
+        self.assertEqual(
+            self._names(res),
+            {"Bikram Contractor", "Hari Gurung", "Shyam Lama", "Gita Rai"},
+        )
+
+    def test_worker_row_reports_its_manager_slug(self):
+        res = self.client.get(f"/api/v1/providers/?manager={self.contractor.slug}")
+        data = res.json()
+        rows = data if isinstance(data, list) else data["results"]
+        worker = next(p for p in rows if p["name"] == "Hari Gurung")
+        self.assertEqual(worker["manager_slug"], self.contractor.slug)
+
+    def test_contractor_row_has_no_manager_slug(self):
+        res = self.client.get("/api/v1/providers/")
+        rows = res.json() if isinstance(res.json(), list) else res.json()["results"]
+        contractor = next(p for p in rows if p["name"] == "Bikram Contractor")
+        self.assertIsNone(contractor["manager_slug"])
+
+    def test_deleting_a_contractor_leaves_workers_in_place_unmanaged(self):
+        """manager is SET_NULL - losing the contractor record must not take
+        their crew's own Provider rows down with it."""
+        self.contractor.delete()
+        self.worker1.refresh_from_db()
+        self.assertIsNone(self.worker1.manager)

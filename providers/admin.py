@@ -8,7 +8,7 @@ from .models import Provider
 @admin.register(Provider)
 class ProviderAdmin(admin.ModelAdmin):
     list_display = [
-        "name", "trade", "engagement", "service_area", "rating", "review_count",
+        "name", "trade", "engagement", "manager", "service_area", "rating", "review_count",
         "display_rate", "jobs_completed", "total_earned",
         "is_available", "is_verified", "is_active", "thumb",
     ]
@@ -18,12 +18,17 @@ class ProviderAdmin(admin.ModelAdmin):
     prepopulated_fields = {"slug": ("name",)}
     readonly_fields = ["jobs_completed_display", "total_earned_display"]
 
+    # Self-referencing - a plain <select> listing every provider would be
+    # unusable once the roster grows, so this needs its own search rather
+    # than relying on the widget default.
+    autocomplete_fields = ["manager"]
+
     # A provider covers a handful of categories out of ~23; the horizontal
     # picker is far less error-prone here than a multi-select box.
     filter_horizontal = ["categories"]
 
     fieldsets = [
-        (None, {"fields": ["name", "slug", "trade", "engagement", "categories", "about"]}),
+        (None, {"fields": ["name", "slug", "trade", "engagement", "manager", "categories", "about"]}),
         ("Contact", {"fields": ["phone", "email", "facebook_url", "whatsapp_number", "service_area", "photo"]}),
         ("Standing", {
             "fields": [
@@ -45,6 +50,7 @@ class ProviderAdmin(admin.ModelAdmin):
         earned = Sum("bookings__final_amount", filter=models.Q(bookings__status=Booking.Status.COMPLETED))
         return (
             super().get_queryset(request)
+            .select_related("manager")
             .prefetch_related("categories")
             .annotate(jobs_completed=completed, total_earned=earned)
         )

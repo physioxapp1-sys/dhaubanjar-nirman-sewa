@@ -9,6 +9,9 @@ class ProviderSerializer(serializers.ModelSerializer):
     display_rate = serializers.CharField(read_only=True)
     photo = serializers.SerializerMethodField()
     category_slugs = serializers.SerializerMethodField()
+    manager_slug = serializers.SlugRelatedField(
+        source="manager", slug_field="slug", read_only=True
+    )
 
     # Real history, not self-reported standing - see ProviderViewSet for
     # where these come from. jobs_completed/total_earned are annotations
@@ -28,7 +31,7 @@ class ProviderSerializer(serializers.ModelSerializer):
             "photo", "service_area", "about", "experience_years",
             "rating", "review_count",
             "rate", "rate_unit", "rate_unit_display", "display_rate",
-            "is_available", "is_verified", "category_slugs",
+            "is_available", "is_verified", "category_slugs", "manager_slug",
             "jobs_completed", "total_earned", "subcategories_worked",
         ]
 
