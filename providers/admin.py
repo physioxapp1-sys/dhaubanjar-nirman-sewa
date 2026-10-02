@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.db import models
 from django.utils.html import format_html
 
 from .models import Provider
@@ -8,12 +9,14 @@ from .models import Provider
 class ProviderAdmin(admin.ModelAdmin):
     list_display = [
         "name", "trade", "engagement", "service_area", "rating", "review_count",
-        "display_rate", "is_available", "is_verified", "is_active", "thumb",
+        "display_rate", "jobs_completed", "total_earned",
+        "is_available", "is_verified", "is_active", "thumb",
     ]
     list_filter = ["engagement", "trade", "is_available", "is_verified", "is_active", "categories"]
     list_editable = ["is_available", "is_verified", "is_active"]
     search_fields = ["name", "slug", "phone", "service_area"]
     prepopulated_fields = {"slug": ("name",)}
+    readonly_fields = ["jobs_completed_display", "total_earned_display"]
 
     # A provider covers a handful of categories out of ~23; the horizontal
     # picker is far less error-prone here than a multi-select box.
@@ -21,15 +24,46 @@ class ProviderAdmin(admin.ModelAdmin):
 
     fieldsets = [
         (None, {"fields": ["name", "slug", "trade", "engagement", "categories", "about"]}),
-        ("Contact", {"fields": ["phone", "email", "service_area", "photo"]}),
-        ("Standing", {"fields": ["experience_years", "rating", "review_count", "is_verified"]}),
+        ("Contact", {"fields": ["phone", "email", "facebook_url", "whatsapp_number", "service_area", "photo"]}),
+        ("Standing", {
+            "fields": [
+                "experience_years", "rating", "review_count", "is_verified",
+                "jobs_completed_display", "total_earned_display",
+            ],
+        }),
         ("Pricing", {"fields": ["rate", "rate_unit"]}),
         ("Listing", {"fields": ["is_available", "is_active", "sort_order"]}),
     ]
     actions = ["mark_available", "mark_unavailable", "verify"]
 
     def get_queryset(self, request):
-        return super().get_queryset(request).prefetch_related("categories")
+        from django.db.models import Count, Sum
+
+        from bookings.models import Booking
+
+        completed = Count("bookings", filter=models.Q(bookings__status=Booking.Status.COMPLETED), distinct=True)
+        earned = Sum("bookings__final_amount", filter=models.Q(bookings__status=Booking.Status.COMPLETED))
+        return (
+            super().get_queryset(request)
+            .prefetch_related("categories")
+            .annotate(jobs_completed=completed, total_earned=earned)
+        )
+
+    @admin.display(description="Jobs done", ordering="jobs_completed")
+    def jobs_completed(self, obj):
+        return obj.jobs_completed or 0
+
+    @admin.display(description="Earned")
+    def total_earned(self, obj):
+        return obj.total_earned or 0
+
+    @admin.display(description="Jobs completed")
+    def jobs_completed_display(self, obj):
+        return obj.jobs_completed or 0
+
+    @admin.display(description="Total earned")
+    def total_earned_display(self, obj):
+        return obj.total_earned or 0
 
     @admin.display(description="Rate")
     def display_rate(self, obj):

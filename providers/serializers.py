@@ -10,14 +10,26 @@ class ProviderSerializer(serializers.ModelSerializer):
     photo = serializers.SerializerMethodField()
     category_slugs = serializers.SerializerMethodField()
 
+    # Real history, not self-reported standing - see ProviderViewSet for
+    # where these come from. jobs_completed/total_earned are annotations
+    # (None/0 if the queryset did not add them, e.g. a plain .get() in the
+    # admin); subcategories_worked reads the prefetched completed Bookings.
+    jobs_completed = serializers.IntegerField(read_only=True, default=0)
+    total_earned = serializers.DecimalField(
+        max_digits=10, decimal_places=2, read_only=True, default=0
+    )
+    subcategories_worked = serializers.SerializerMethodField()
+
     class Meta:
         model = Provider
         fields = [
             "id", "name", "slug", "trade", "trade_display",
-            "phone", "photo", "service_area", "about", "experience_years",
+            "phone", "facebook_url", "whatsapp_number",
+            "photo", "service_area", "about", "experience_years",
             "rating", "review_count",
             "rate", "rate_unit", "rate_unit_display", "display_rate",
             "is_available", "is_verified", "category_slugs",
+            "jobs_completed", "total_earned", "subcategories_worked",
         ]
 
     def get_photo(self, obj):
@@ -29,3 +41,14 @@ class ProviderSerializer(serializers.ModelSerializer):
     def get_category_slugs(self, obj):
         # prefetched in the viewset, so this does not fire a query per row
         return [c.slug for c in obj.categories.all()]
+
+    def get_subcategories_worked(self, obj):
+        bookings = getattr(obj, "completed_bookings_cache", None)
+        if bookings is None:
+            return []
+        seen, names = set(), []
+        for b in bookings:
+            if b.subcategory_id and b.subcategory_id not in seen:
+                seen.add(b.subcategory_id)
+                names.append(b.subcategory.name)
+        return names
