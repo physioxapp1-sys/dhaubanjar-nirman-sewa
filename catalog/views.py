@@ -37,6 +37,11 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
                     "subcategories", filter=Q(subcategories__is_active=True)
                 )
             )
+            # Explicit, because Django drops Meta.ordering once a query
+            # aggregates, which this one does. Without it the list comes back
+            # in whatever order the database felt like and the app's category
+            # order - Grocery first, then Construction - is not reproducible.
+            .order_by("vertical", "sort_order", "name")
         )
         vertical = self.request.query_params.get("vertical")
         if vertical in Vertical.values:
