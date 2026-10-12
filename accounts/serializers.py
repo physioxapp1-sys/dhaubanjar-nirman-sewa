@@ -21,7 +21,10 @@ def _validate_new_password(value, user=None):
 
 class RegisterSerializer(serializers.Serializer):
     phone = serializers.CharField(max_length=20)
-    password = serializers.CharField(write_only=True, min_length=6)
+    # 8, matching MinimumLengthValidator in validate_password below. It said 6,
+    # which could never pass - the field accepted a length the validator then
+    # rejected, and the app copied the 6.
+    password = serializers.CharField(write_only=True, min_length=8)
     full_name = serializers.CharField(max_length=120, required=False, allow_blank=True)
 
     def validate_phone(self, value):
