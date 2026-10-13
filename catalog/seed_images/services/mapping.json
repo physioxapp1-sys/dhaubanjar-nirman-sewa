@@ -1,0 +1,163 @@
+{
+  "_comment": [
+    "Which subcategory each numbered image belongs to, read off the labels",
+    "printed in the images themselves rather than assumed from file order.",
+    "Order matters: cleaning 8-10 and painting 6-8 are NOT in catalog order,",
+    "so pairing by position puts the wrong name and rate under a picture.",
+    "Names are matched to Subcategory.name by slug, within the category."
+  ],
+  "grocery": [
+    "Vegetables & Fruits",
+    "Rice & Grains",
+    "Dairy & Eggs",
+    "Gas & Fuel"
+  ],
+  "construction": [
+    "New House Construction",
+    "Building Extension",
+    "Renovation",
+    "Demolition",
+    "Foundation Work",
+    "RCC / Concrete Work",
+    "Brick / Block Work",
+    "Roofing",
+    "Boundary Wall",
+    "Structural Repair",
+    "Site Preparation",
+    "Contractor Services"
+  ],
+  "electrical": [
+    "New Wiring",
+    "Electrical Repair",
+    "Switch & Socket Installation",
+    "Light & Fan Installation",
+    "MCB / DB Installation",
+    "Earthing",
+    "Inverter / UPS",
+    "Generator",
+    "Solar Installation",
+    "CCTV Installation",
+    "Doorbell / Intercom",
+    "Electrical Inspection"
+  ],
+  "cleaning": [
+    "House Cleaning",
+    "Deep Cleaning",
+    "Kitchen Cleaning",
+    "Bathroom Cleaning",
+    "Sofa Cleaning",
+    "Carpet Cleaning",
+    "Window / Glass Cleaning",
+    "Post-Construction Cleaning",
+    "Water Tank Cleaning",
+    "Office Cleaning",
+    "Move-in / Move-out Cleaning"
+  ],
+  "mason": [
+    "Brick / Block Work",
+    "Plastering",
+    "Concrete Work",
+    "Floor Screeding",
+    "Tile Work",
+    "Wall Repair",
+    "Boundary Wall",
+    "Drainage Work",
+    "Bathroom Masonry",
+    "Kitchen Masonry",
+    "Paving / Interlocking"
+  ],
+  "appliance-repair": [
+    "Refrigerator",
+    "Washing Machine",
+    "Air Conditioner",
+    "Television",
+    "Microwave / Oven",
+    "Water Heater / Geyser",
+    "Electric Stove",
+    "Dishwasher",
+    "Water Purifier",
+    "Exhaust Fan",
+    "Small Appliances",
+    "Installation & Servicing"
+  ],
+  "plumbing": [
+    "Leakage Repair",
+    "Pipe Installation",
+    "Drain Blockage",
+    "Bathroom Plumbing",
+    "Kitchen Plumbing",
+    "Tap / Faucet Repair",
+    "Toilet Repair",
+    "Water Tank Installation",
+    "Pump Installation / Repair",
+    "Water Heater / Geyser",
+    "Drainage",
+    "New Water Line"
+  ],
+  "painting": [
+    "Interior Painting",
+    "Exterior Painting",
+    "Wall Repainting",
+    "Texture Painting",
+    "Waterproof Paint",
+    "Ceiling Painting",
+    "Wood Painting / Polishing",
+    "Metal Painting",
+    "Wallpaper Installation",
+    "Color Consultation"
+  ],
+  "carpenter": [
+    "Furniture Repair",
+    "Custom Furniture",
+    "Door Repair / Installation",
+    "Window Repair",
+    "Wardrobe",
+    "Kitchen Cabinets",
+    "Modular Kitchen",
+    "Bed",
+    "Table / Desk",
+    "Shelves",
+    "Wooden Flooring"
+  ],
+  "waterproofing": [
+    "Roof Waterproofing",
+    "Terrace Waterproofing",
+    "Bathroom Waterproofing",
+    "Basement Waterproofing",
+    "Wall Dampness",
+    "Water Leakage",
+    "Tank Waterproofing",
+    "Balcony Waterproofing",
+    "Joint / Crack Sealing",
+    "Waterproof Coating"
+  ],
+  "interior": [
+    "Interior Design",
+    "3D Design",
+    "Modular Kitchen",
+    "Wardrobe",
+    "False Ceiling",
+    "Partition",
+    "TV Unit",
+    "Lighting Design",
+    "Flooring",
+    "Wallpaper",
+    "Curtains / Blinds",
+    "Furniture",
+    "Office Interior",
+    "Commercial Interior"
+  ],
+  "_unused": {
+    "_comment": "Images with no subcategory to attach to. Add the row in admin, re-run, and they land.",
+    "interior": {
+      "15": "Textiles / Upholstery",
+      "16": "Green / vertical garden wall"
+    }
+  },
+  "_missing": {
+    "_comment": "Subcategories with no image. They render a placeholder until one is uploaded in admin.",
+    "cleaning": ["Disinfection"],
+    "painting": ["Decorative Painting"],
+    "carpenter": ["Polishing"]
+  }
+}
