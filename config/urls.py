@@ -15,6 +15,13 @@ from accounts.views import (
 from bookings.views import BookingCreateView, BookingLookupView, MyBookingListView
 from catalog.views import CategoryViewSet, SubcategoryViewSet
 from enquiries.views import EnquiryCreateView
+from orders.views import (
+    AddressViewSet,
+    DeliverySlotListView,
+    MyOrderListView,
+    OrderCreateView,
+    OrderLookupView,
+)
 from products.views import ProductViewSet
 from providers.views import ProviderViewSet
 from website import views as website_views
@@ -23,6 +30,7 @@ router = DefaultRouter()
 router.register("categories", CategoryViewSet, basename="category")
 router.register("subcategories", SubcategoryViewSet, basename="subcategory")
 router.register("products", ProductViewSet, basename="product")
+router.register("addresses", AddressViewSet, basename="address")
 router.register("providers", ProviderViewSet, basename="provider")
 
 api_v1 = [
@@ -37,6 +45,10 @@ api_v1 = [
     path("bookings/", BookingCreateView.as_view(), name="booking-create"),
     path("bookings/mine/", MyBookingListView.as_view(), name="booking-mine"),
     path("bookings/<str:reference>/", BookingLookupView.as_view(), name="booking-lookup"),
+    path("orders/", OrderCreateView.as_view(), name="order-create"),
+    path("orders/mine/", MyOrderListView.as_view(), name="order-mine"),
+    path("orders/slots/", DeliverySlotListView.as_view(), name="order-slots"),
+    path("orders/<str:reference>/", OrderLookupView.as_view(), name="order-lookup"),
     path("health/", website_views.health, name="health"),
 ]
 
