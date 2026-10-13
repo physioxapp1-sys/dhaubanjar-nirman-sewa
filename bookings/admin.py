@@ -17,7 +17,8 @@ class BookingAdmin(admin.ModelAdmin):
     ]
     list_editable = ["status"]
     search_fields = ["reference", "contact_name", "contact_phone", "address"]
-    date_hierarchy = "created_at"
+    # No date_hierarchy - see the note in orders/admin.py. MySQL here
+    # cannot do the time zone conversion it needs.
     autocomplete_fields = ["subcategory", "provider"]
     list_select_related = ["subcategory", "provider"]
     actions = ["mark_confirmed", "mark_completed", "mark_cancelled"]

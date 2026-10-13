@@ -39,7 +39,13 @@ class OrderAdmin(admin.ModelAdmin):
     ]
     list_editable = ["status"]
     search_fields = ["reference", "contact_name", "contact_phone", "delivery_address"]
-    date_hierarchy = "created_at"
+    # No date_hierarchy here. It makes Django ask MySQL for CONVERT_TZ(), and
+    # this host's MySQL has no time zone tables loaded - loading them needs
+    # mysql_tzinfo_to_sql as root, which a cPanel account cannot run. The
+    # conversion then returns NULL and the whole changelist 500s, but only once
+    # there are rows, so it looks like the page broke by itself. The created_at
+    # filter in the sidebar gives today / this week / this month without any
+    # conversion.
     autocomplete_fields = ["delivery_partner"]
     inlines = [OrderItemInline]
     list_select_related = ["delivery_partner"]

@@ -9,7 +9,8 @@ class EnquiryAdmin(admin.ModelAdmin):
     list_filter = ["status", "source", "project_type", "created_at"]
     list_editable = ["status"]
     search_fields = ["name", "phone", "email", "message"]
-    date_hierarchy = "created_at"
+    # No date_hierarchy - see the note in orders/admin.py. MySQL here
+    # cannot do the time zone conversion it needs.
     actions = ["mark_contacted", "mark_spam"]
 
     # Everything the sender supplied is a record of what they sent, so it is
