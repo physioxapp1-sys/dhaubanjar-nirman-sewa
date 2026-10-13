@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     "bookings",
     "catalog",
     "enquiries",
+    "products",
     "providers",
     "website",
 ]

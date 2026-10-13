@@ -15,12 +15,14 @@ from accounts.views import (
 from bookings.views import BookingCreateView, BookingLookupView, MyBookingListView
 from catalog.views import CategoryViewSet, SubcategoryViewSet
 from enquiries.views import EnquiryCreateView
+from products.views import ProductViewSet
 from providers.views import ProviderViewSet
 from website import views as website_views
 
 router = DefaultRouter()
 router.register("categories", CategoryViewSet, basename="category")
 router.register("subcategories", SubcategoryViewSet, basename="subcategory")
+router.register("products", ProductViewSet, basename="product")
 router.register("providers", ProviderViewSet, basename="provider")
 
 api_v1 = [
