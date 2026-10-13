@@ -52,6 +52,8 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    # Thousands separators on the order tracking page.
+    "django.contrib.humanize",
     # third party
     "rest_framework",
     "rest_framework.authtoken",

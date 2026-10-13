@@ -15,6 +15,7 @@ from accounts.views import (
 from bookings.views import BookingCreateView, BookingLookupView, MyBookingListView
 from catalog.views import CategoryViewSet, SubcategoryViewSet
 from enquiries.views import EnquiryCreateView
+from orders.web import track_order
 from orders.views import (
     AddressViewSet,
     DeliverySlotListView,
@@ -58,6 +59,8 @@ urlpatterns = [
 
     # Public website
     path("", website_views.home, name="home"),
+    # Pakka Homes order tracking, for anyone holding a reference and no app.
+    path("track/", track_order, name="order-track"),
     path("robots.txt", website_views.robots, name="robots"),
     path("sitemap.xml", website_views.sitemap, name="sitemap"),
 ]

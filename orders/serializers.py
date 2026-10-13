@@ -77,14 +77,9 @@ class OrderSerializer(serializers.ModelSerializer):
 
     def get_timeline(self, obj):
         """The tracking steps and which are done, so the app does not have to
-        know the order of the statuses."""
-        if obj.status == Order.Status.CANCELLED:
-            return [{"status": "cancelled", "label": "Cancelled", "done": True}]
-        reached = Order.TIMELINE.index(obj.status) if obj.status in Order.TIMELINE else 0
-        return [
-            {"status": s.value, "label": s.label, "done": i <= reached}
-            for i, s in enumerate(Order.TIMELINE)
-        ]
+        know the order of the statuses. Shared with the website's tracking
+        page - see Order.timeline()."""
+        return obj.timeline()
 
 
 class OrderCreateSerializer(serializers.Serializer):

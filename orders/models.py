@@ -163,6 +163,21 @@ class Order(TimeStamped):
     def is_open(self):
         return self.status not in {self.Status.DELIVERED, self.Status.CANCELLED}
 
+    def timeline(self):
+        """The tracking steps and which are done.
+
+        Lives here rather than in the serializer because the app and the
+        tracking page on the website both show it, and two copies of "which
+        step comes after which" is one copy too many.
+        """
+        if self.status == self.Status.CANCELLED:
+            return [{"status": "cancelled", "label": "Cancelled", "done": True}]
+        reached = self.TIMELINE.index(self.status) if self.status in self.TIMELINE else 0
+        return [
+            {"status": s.value, "label": s.label, "done": i <= reached}
+            for i, s in enumerate(self.TIMELINE)
+        ]
+
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")

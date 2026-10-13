@@ -2,5 +2,6 @@ User-agent: *
 Allow: /
 Disallow: /admin/
 Disallow: /api/
+Disallow: /track/
 
 Sitemap: {{ site.canonical }}sitemap.xml
