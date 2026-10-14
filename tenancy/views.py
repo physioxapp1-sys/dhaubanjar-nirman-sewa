@@ -20,6 +20,7 @@ from .serializers import (
     RecordPaymentSerializer,
     RentPaymentSerializer,
     TenancySerializer,
+    TenancyWriteSerializer,
 )
 
 
@@ -103,7 +104,7 @@ class RentHomeView(APIView):
         return Response(payload)
 
 
-class PropertyListView(generics.ListAPIView):
+class PropertyListView(generics.ListCreateAPIView):
     """Owned properties, or - with ?listed=true - places going spare.
 
     The listed view is open: someone looking for a flat has no reason to have
@@ -125,6 +126,34 @@ class PropertyListView(generics.ListAPIView):
         if not self.request.user.is_authenticated:
             return qs.none()
         return qs.filter(owner=self.request.user).prefetch_related("tenancies__payments")
+
+    def get_permissions(self):
+        # Browsing is open; adding a property is not.
+        if self.request.method == "POST":
+            return [permissions.IsAuthenticated()]
+        return super().get_permissions()
+
+    def perform_create(self, serializer):
+        # The owner is whoever is adding it, never whatever was posted.
+        serializer.save(owner=self.request.user)
+
+
+class PropertyDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """Edit or remove one of your own.
+
+    Deleting is a soft delete: a property with a history of leases and
+    payments behind it should stop being listed, not take that history with it.
+    """
+
+    serializer_class = PropertySerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Property.objects.filter(owner=self.request.user, is_active=True)
+
+    def perform_destroy(self, instance):
+        instance.is_active = False
+        instance.save(update_fields=["is_active"])
 
 
 class RentPaymentListView(generics.ListAPIView):
@@ -178,11 +207,29 @@ class RecordPaymentView(APIView):
         return Response(RentPaymentSerializer(payment).data)
 
 
-class TenancyListView(generics.ListAPIView):
-    """Contracts: every lease on an owner's properties, or a tenant's own."""
+class TenancyListView(generics.ListCreateAPIView):
+    """Contracts: every lease on an owner's properties, or a tenant's own.
 
-    serializer_class = TenancySerializer
+    Creating one is the owner putting a tenant into a flat.
+    """
+
     permission_classes = [permissions.IsAuthenticated]
+
+    def get_serializer_class(self):
+        return TenancyWriteSerializer if self.request.method == "POST" else TenancySerializer
+
+    def create(self, request, *args, **kwargs):
+        form = self.get_serializer(data=request.data)
+        form.is_valid(raise_exception=True)
+        tenancy = form.save()
+        # Raise this month's rent straight away rather than waiting for the
+        # monthly run: an owner who has just added a tenant should see the
+        # rent roll fill, not an empty tab until the 1st.
+        _raise_current_month(tenancy)
+        return Response(
+            TenancySerializer(tenancy, context={"request": request}).data,
+            status=status.HTTP_201_CREATED,
+        )
 
     def get_queryset(self):
         user = self.request.user
@@ -190,3 +237,49 @@ class TenancyListView(generics.ListAPIView):
         if self.request.query_params.get("as") == "tenant":
             return qs.filter(id__in=rented_by(user).values("id"))
         return qs.filter(property__owner=user)
+
+
+def _raise_current_month(tenancy):
+    """This month's rent row for a lease that has started.
+
+    The same thing `raise_rent` does every month, for the one lease. Harmless
+    to repeat - (tenancy, period) is unique.
+    """
+    if tenancy.status != Tenancy.Status.ACTIVE:
+        return
+    today = date.today()
+    period = date(today.year, today.month, 1)
+    if tenancy.start_date > period and tenancy.start_date.month != today.month:
+        return
+    RentPayment.objects.get_or_create(
+        tenancy=tenancy,
+        period=period,
+        defaults={
+            "due_date": tenancy.due_date(period.year, period.month),
+            "amount": tenancy.monthly_rent,
+        },
+    )
+
+
+class EndTenancyView(APIView):
+    """Someone has moved out.
+
+    Ended rather than deleted: the lease and the rent paid under it are what
+    happened, and next year's question is always "who was in it and what did
+    they pay".
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        tenancy = Tenancy.objects.filter(
+            pk=pk, property__owner=request.user
+        ).select_related("property").first()
+        if tenancy is None:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        ended_on = request.data.get("end_date") or date.today().isoformat()
+        tenancy.end_date = ended_on
+        tenancy.status = Tenancy.Status.ENDED
+        tenancy.save(update_fields=["end_date", "status"])
+        return Response(TenancySerializer(tenancy, context={"request": request}).data)

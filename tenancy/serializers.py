@@ -1,3 +1,5 @@
+from datetime import date
+
 from rest_framework import serializers
 
 from .models import Property, RentPayment, Tenancy
@@ -48,6 +50,22 @@ class PropertySerializer(serializers.ModelSerializer):
         user = getattr(request, "user", None)
         return bool(user and user.is_authenticated and obj.owner_id == user.id)
 
+    def validate_title(self, value):
+        value = value.strip()
+        if len(value) < 3:
+            raise serializers.ValidationError(
+                "Give it a name you will recognise, like 'Dhapasi 2BHK, first floor'."
+            )
+        return value
+
+    def validate_address(self, value):
+        value = value.strip()
+        if len(value) < 5:
+            raise serializers.ValidationError(
+                "Enter enough address for someone to find it."
+            )
+        return value
+
 
 class RentPaymentSerializer(serializers.ModelSerializer):
     state = serializers.CharField(read_only=True)
@@ -73,6 +91,74 @@ class RecordPaymentSerializer(serializers.Serializer):
     method = serializers.CharField(max_length=40, required=False, allow_blank=True)
     reference = serializers.CharField(max_length=80, required=False, allow_blank=True)
     notes = serializers.CharField(required=False, allow_blank=True)
+
+
+class TenancyWriteSerializer(serializers.ModelSerializer):
+    """Putting a tenant into a property.
+
+    The property has to be the caller's, and it has to be empty: two live
+    leases on one flat is not a thing that can be true, and letting it be
+    recorded would quietly double the rent roll.
+    """
+
+    class Meta:
+        model = Tenancy
+        fields = [
+            "id", "property", "tenant_name", "tenant_phone", "start_date",
+            "end_date", "monthly_rent", "deposit", "rent_due_day", "notes",
+        ]
+
+    def validate_property(self, value):
+        user = self.context["request"].user
+        if value.owner_id != user.id:
+            raise serializers.ValidationError("That is not your property.")
+        if value.current_tenancy is not None:
+            raise serializers.ValidationError(
+                "Someone is already in it. End that tenancy first."
+            )
+        return value
+
+    def validate_tenant_name(self, value):
+        value = value.strip()
+        if len(value) < 2:
+            raise serializers.ValidationError("Enter the tenant's name.")
+        return value
+
+    def validate_tenant_phone(self, value):
+        digits = "".join(ch for ch in value if ch.isdigit())
+        if len(digits) < 7:
+            raise serializers.ValidationError("Enter a valid phone number.")
+        return value.strip()
+
+    def validate_rent_due_day(self, value):
+        if not 1 <= value <= 31:
+            raise serializers.ValidationError("Pick a day between 1 and 31.")
+        return value
+
+    def validate(self, attrs):
+        start, end = attrs.get("start_date"), attrs.get("end_date")
+        if start and end and end < start:
+            raise serializers.ValidationError(
+                {"end_date": "The tenancy cannot end before it starts."}
+            )
+        return attrs
+
+    def create(self, validated):
+        # A lease that has already begun starts active; one dated forward is
+        # upcoming, and the monthly run picks it up when its month arrives.
+        validated.setdefault("monthly_rent", validated["property"].monthly_rent)
+        validated["status"] = (
+            Tenancy.Status.ACTIVE
+            if validated["start_date"] <= date.today()
+            else Tenancy.Status.UPCOMING
+        )
+        tenancy = super().create(validated)
+
+        # A flat with someone in it is not available, whatever it was flagged.
+        if tenancy.property.is_listed:
+            tenancy.property.is_listed = False
+            tenancy.property.save(update_fields=["is_listed"])
+        return tenancy
 
 
 class TenancySerializer(serializers.ModelSerializer):

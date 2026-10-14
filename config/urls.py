@@ -26,6 +26,8 @@ from orders.views import (
 from products.views import ProductViewSet
 from providers.views import ProviderViewSet
 from tenancy.views import (
+    EndTenancyView,
+    PropertyDetailView,
     PropertyListView,
     RecordPaymentView,
     RentHomeView,
@@ -64,7 +66,11 @@ api_v1 = [
     path("rent/payments/", RentPaymentListView.as_view(), name="rent-payments"),
     path("rent/payments/<int:pk>/record/", RecordPaymentView.as_view(),
          name="rent-payment-record"),
+    path("rent/properties/<int:pk>/", PropertyDetailView.as_view(),
+         name="rent-property"),
     path("rent/contracts/", TenancyListView.as_view(), name="rent-contracts"),
+    path("rent/contracts/<int:pk>/end/", EndTenancyView.as_view(),
+         name="rent-contract-end"),
     path("health/", website_views.health, name="health"),
 ]
 
