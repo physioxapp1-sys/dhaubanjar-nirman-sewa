@@ -14,13 +14,26 @@ class BookingCreateSerializer(serializers.ModelSerializer):
     provider_slug = serializers.CharField(write_only=True, required=False, allow_blank=True)
     category_slug = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
+    # Maid work is hired as a bundle, so the app can send several. One service
+    # still arrives as subcategory_slug, and both paths end up in `services`.
+    subcategory_slugs = serializers.ListField(
+        child=serializers.CharField(), write_only=True, required=False
+    )
+    # Times that suit, most-wanted first. A household will take morning or
+    # evening and not mind which, which a single choice cannot express.
+    preferred_slots = serializers.ListField(
+        child=serializers.ChoiceField(choices=Booking.Slot.choices),
+        write_only=True, required=False,
+    )
+
     class Meta:
         model = Booking
         fields = [
             "reference",
             "contact_name", "contact_phone", "address", "landmark",
-            "scheduled_date", "slot", "notes",
-            "subcategory_slug", "provider_slug", "category_slug",
+            "scheduled_date", "slot", "notes", "engagement",
+            "subcategory_slug", "subcategory_slugs", "preferred_slots",
+            "provider_slug", "category_slug",
         ]
         read_only_fields = ["reference"]
 
@@ -45,23 +58,46 @@ class BookingCreateSerializer(serializers.ModelSerializer):
     def create(self, validated):
         category_slug = validated.pop("category_slug", "")
         subcategory_slug = validated.pop("subcategory_slug", "")
+        subcategory_slugs = validated.pop("subcategory_slugs", [])
         provider_slug = validated.pop("provider_slug", "")
+        preferred = validated.pop("preferred_slots", [])
 
-        if subcategory_slug:
-            qs = Subcategory.objects.filter(slug=subcategory_slug, is_active=True)
+        # One slug or many, the lookup is the same. Order is kept: the first
+        # is what the customer picked first, and becomes the headline service.
+        wanted = [s for s in ([subcategory_slug] + list(subcategory_slugs)) if s]
+        seen, slugs = set(), []
+        for slug in wanted:
+            if slug not in seen:
+                seen.add(slug)
+                slugs.append(slug)
+
+        services = []
+        if slugs:
+            qs = Subcategory.objects.filter(slug__in=slugs, is_active=True)
             # Slugs are unique per category, not globally, so the category
             # disambiguates 'water-heater-geyser' under Plumbing from the one
             # under Appliance Repair.
             if category_slug:
                 qs = qs.filter(category__slug=category_slug)
-            validated["subcategory"] = qs.first()
+            found = {s.slug: s for s in qs}
+            services = [found[s] for s in slugs if s in found]
+            if services:
+                validated["subcategory"] = services[0]
+
+        if preferred:
+            validated["preferred_slots"] = ",".join(preferred)
+            # Keep `slot` meaningful for everything that already reads it.
+            validated["slot"] = preferred[0]
 
         if provider_slug:
             validated["provider"] = Provider.objects.filter(
                 slug=provider_slug, is_active=True
             ).first()
 
-        return super().create(validated)
+        booking = super().create(validated)
+        if services:
+            booking.services.set(services)
+        return booking
 
 
 class BookingSerializer(serializers.ModelSerializer):
@@ -69,6 +105,11 @@ class BookingSerializer(serializers.ModelSerializer):
     slot_display = serializers.CharField(source="get_slot_display", read_only=True)
     subcategory_name = serializers.CharField(source="subcategory.name", default=None, read_only=True)
     provider_name = serializers.CharField(source="provider.name", default=None, read_only=True)
+    engagement_display = serializers.CharField(
+        source="get_engagement_display", default="", read_only=True
+    )
+    service_names = serializers.SerializerMethodField()
+    preferred_slots_display = serializers.CharField(read_only=True)
 
     class Meta:
         model = Booking
@@ -76,6 +117,15 @@ class BookingSerializer(serializers.ModelSerializer):
             "id", "reference", "status", "status_display",
             "contact_name", "contact_phone", "address", "landmark",
             "scheduled_date", "slot", "slot_display", "notes",
-            "subcategory_name", "provider_name",
+            "subcategory_name", "service_names", "provider_name",
+            "engagement", "engagement_display", "preferred_slots_display",
             "quoted_amount", "final_amount", "created_at",
         ]
+
+    def get_service_names(self, obj):
+        """Everything asked for. Falls back to the single service for the
+        bookings taken before one could hold several."""
+        names = [s.name for s in obj.services.all()]
+        if not names and obj.subcategory:
+            names = [obj.subcategory.name]
+        return names

@@ -41,6 +41,15 @@ class Booking(TimeStamped):
         WEBSITE = "website", "Website"
         PHONE = "phone", "Phone"
 
+    class Engagement(models.TextChoices):
+        """How often someone is wanted, for the help you hire rather than the
+        job you book. A plumber comes once; a maid comes every day or a few
+        hours of it, and the difference changes the price and the person."""
+
+        FULL_TIME = "full_time", "Full time"
+        PART_TIME = "part_time", "Part time"
+        ONE_TIME = "one_time", "One time"
+
     reference = models.CharField(max_length=12, unique=True, default=make_reference, editable=False)
 
     # Null for a guest booking. The app lets people book before they have an
@@ -60,6 +69,28 @@ class Booking(TimeStamped):
         blank=True,
         related_name="bookings",
     )
+    # Maid work is hired as a bundle - cooking and dishwashing and the
+    # laundry, one person, one visit - so a booking can name several. The
+    # single `subcategory` above stays the headline one, which is what the
+    # admin lists and what a one-service booking sets on its own.
+    services = models.ManyToManyField(
+        "catalog.Subcategory",
+        blank=True,
+        related_name="booking_selections",
+        help_text="Every service asked for. Includes the one above.",
+    )
+    engagement = models.CharField(
+        max_length=12, choices=Engagement.choices, blank=True,
+        help_text="Full or part time, for maid work. Blank for one-off jobs.",
+    )
+    # Comma-separated Slot values. A household will often take morning or
+    # evening and not mind which, and a single choice cannot say that. `slot`
+    # above keeps the first of them so the existing filters still read.
+    preferred_slots = models.CharField(
+        max_length=64, blank=True,
+        help_text="Times that suit, most-wanted first.",
+    )
+
     provider = models.ForeignKey(
         "providers.Provider",
         on_delete=models.SET_NULL,
@@ -118,3 +149,21 @@ class Booking(TimeStamped):
     @property
     def is_open(self):
         return self.status in {self.Status.PENDING, self.Status.CONFIRMED, self.Status.IN_PROGRESS}
+
+    @property
+    def preferred_slot_list(self):
+        return [s for s in self.preferred_slots.split(",") if s]
+
+    def preferred_slots_display(self):
+        """The chosen times in words, for the admin and the confirmation mail."""
+        labels = dict(self.Slot.choices)
+        chosen = [labels.get(s, s) for s in self.preferred_slot_list]
+        return ", ".join(chosen) or self.get_slot_display()
+
+    def services_display(self):
+        """Every service asked for, falling back to the headline one for the
+        bookings made before a booking could hold more than one."""
+        names = [s.name for s in self.services.all()]
+        if not names and self.subcategory:
+            names = [self.subcategory.name]
+        return ", ".join(names)

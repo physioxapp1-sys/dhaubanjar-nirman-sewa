@@ -48,9 +48,16 @@ class BookingCreateView(generics.CreateAPIView):
             f"Reference: {booking.reference}",
             f"Name:      {booking.contact_name}",
             f"Phone:     {booking.contact_phone}",
-            f"Service:   {booking.subcategory or '-'}",
+            # services_display, not subcategory: a maid booking names several
+            # and whoever reads this needs all of them to send the right person.
+            f"Service:   {booking.services_display() or '-'}",
+        ]
+        if booking.engagement:
+            lines.append(f"Hours:     {booking.get_engagement_display()}")
+        lines += [
             f"Provider:  {booking.provider or 'unassigned'}",
-            f"When:      {booking.scheduled_date or 'not set'} ({booking.get_slot_display()})",
+            f"When:      {booking.scheduled_date or 'not set'} "
+            f"({booking.preferred_slots_display()})",
             f"Address:   {booking.address}",
             f"Notes:     {booking.notes or '-'}",
         ]

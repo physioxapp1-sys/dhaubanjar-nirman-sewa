@@ -147,6 +147,7 @@
     "Office Interior",
     "Commercial Interior"
   ],
+  "maid": "by-filename",
   "_unused": {
     "_comment": "Images with no subcategory to attach to. Add the row in admin, re-run, and they land.",
     "interior": {
@@ -156,8 +157,14 @@
   },
   "_missing": {
     "_comment": "Subcategories with no image. They render a placeholder until one is uploaded in admin.",
-    "cleaning": ["Disinfection"],
-    "painting": ["Decorative Painting"],
-    "carpenter": ["Polishing"]
+    "cleaning": [
+      "Disinfection"
+    ],
+    "painting": [
+      "Decorative Painting"
+    ],
+    "carpenter": [
+      "Polishing"
+    ]
   }
 }

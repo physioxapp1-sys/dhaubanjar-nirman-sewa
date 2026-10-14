@@ -6,21 +6,27 @@ from .models import Booking
 @admin.register(Booking)
 class BookingAdmin(admin.ModelAdmin):
     list_display = [
-        "reference", "contact_name", "contact_phone", "subcategory",
-        "provider", "scheduled_date", "slot", "status", "created_at",
+        "reference", "contact_name", "contact_phone", "services_display",
+        "engagement", "provider", "scheduled_date", "preferred_slots_display",
+        "status", "created_at",
     ]
     # The empty-provider filter is the dispatch queue: bookings taken but
     # nobody sent yet.
     list_filter = [
         ("provider", admin.EmptyFieldListFilter),
-        "status", "slot", "source", "created_at", "provider",
+        "status", "engagement", "slot", "source", "created_at", "provider",
     ]
     list_editable = ["status"]
     search_fields = ["reference", "contact_name", "contact_phone", "address"]
     # No date_hierarchy - see the note in orders/admin.py. MySQL here
     # cannot do the time zone conversion it needs.
     autocomplete_fields = ["subcategory", "provider"]
+    filter_horizontal = ["services"]
     list_select_related = ["subcategory", "provider"]
+
+    def get_queryset(self, request):
+        # services_display walks the m2m for every row.
+        return super().get_queryset(request).prefetch_related("services")
     actions = ["mark_confirmed", "mark_completed", "mark_cancelled"]
 
     # What the customer sent is a record of what they sent. Staff change the

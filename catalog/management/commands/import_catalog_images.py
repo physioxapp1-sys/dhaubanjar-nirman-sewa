@@ -18,6 +18,9 @@ order, because cleaning 8-10 and painting 6-8 are not in catalog order.
     python manage.py import_catalog_images --replace       # overwrite existing
     python manage.py import_catalog_images --dry-run       # report, change nothing
 """
+# A folder whose mapping is "by-filename" is matched on the file name instead,
+# which is what newer artwork does: deep-cleaning.png belongs to Deep Cleaning
+# and nothing has to agree about ordering.
 import json
 from pathlib import Path
 
@@ -30,6 +33,10 @@ from catalog.models import Category, Subcategory, Vertical
 
 BUNDLED = Path(__file__).resolve().parents[2] / "seed_images"
 SUFFIXES = {".png", ".jpg", ".jpeg", ".webp"}
+
+# A mapping value of this, instead of a list of names, means the files in that
+# folder are named after the subcategory they belong to.
+BY_FILENAME = "by-filename"
 
 # The folder under seed_images/ for each vertical. They are named for the
 # section as the app speaks of it, not for the Vertical constant.
@@ -93,6 +100,10 @@ class Command(BaseCommand):
                     )
                 )
                 continue
+            # "by-filename" for a folder whose files are named after the
+            # service rather than numbered - there is nothing to line up, so
+            # there is nothing to line up wrongly.
+            by_filename = names == BY_FILENAME
 
             category = Category.objects.filter(
                 vertical=vertical, slug=category_folder.name
@@ -112,17 +123,21 @@ class Command(BaseCommand):
                 key=lambda p: int(p.stem) if p.stem.isdigit() else 0,
             )
             for path in files:
-                index = int(path.stem) if path.stem.isdigit() else 0
-                if not 1 <= index <= len(names):
-                    self.stdout.write(
-                        f"  {path.name}: nothing mapped to it - skipped"
-                    )
-                    unmatched += 1
-                    continue
+                if by_filename:
+                    slug, name = slugify(path.stem)[:180], path.stem
+                else:
+                    index = int(path.stem) if path.stem.isdigit() else 0
+                    if not 1 <= index <= len(names):
+                        self.stdout.write(
+                            f"  {path.name}: nothing mapped to it - skipped"
+                        )
+                        unmatched += 1
+                        continue
+                    name = names[index - 1]
+                    slug = slugify(name)[:180]
 
-                name = names[index - 1]
                 subcategory = Subcategory.objects.filter(
-                    category=category, slug=slugify(name)[:180]
+                    category=category, slug=slug
                 ).first()
                 if subcategory is None:
                     self.stdout.write(
@@ -130,6 +145,7 @@ class Command(BaseCommand):
                     )
                     unmatched += 1
                     continue
+                name = subcategory.name
 
                 if subcategory.image and not opts["replace"]:
                     self.stdout.write(f"  {name}: already has an image - left alone")
