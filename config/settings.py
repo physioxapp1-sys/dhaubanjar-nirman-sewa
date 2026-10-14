@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     "orders",
     "products",
     "providers",
+    "tenancy",
     "website",
 ]
 

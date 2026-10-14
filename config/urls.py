@@ -25,6 +25,13 @@ from orders.views import (
 )
 from products.views import ProductViewSet
 from providers.views import ProviderViewSet
+from tenancy.views import (
+    PropertyListView,
+    RecordPaymentView,
+    RentHomeView,
+    RentPaymentListView,
+    TenancyListView,
+)
 from website import views as website_views
 
 router = DefaultRouter()
@@ -50,6 +57,14 @@ api_v1 = [
     path("orders/mine/", MyOrderListView.as_view(), name="order-mine"),
     path("orders/slots/", DeliverySlotListView.as_view(), name="order-slots"),
     path("orders/<str:reference>/", OrderLookupView.as_view(), name="order-lookup"),
+    # Rent: one section for the person who owns the flat and the person who
+    # lives in it, which is why each of these answers by who is asking.
+    path("rent/", RentHomeView.as_view(), name="rent-home"),
+    path("rent/properties/", PropertyListView.as_view(), name="rent-properties"),
+    path("rent/payments/", RentPaymentListView.as_view(), name="rent-payments"),
+    path("rent/payments/<int:pk>/record/", RecordPaymentView.as_view(),
+         name="rent-payment-record"),
+    path("rent/contracts/", TenancyListView.as_view(), name="rent-contracts"),
     path("health/", website_views.health, name="health"),
 ]
 
