@@ -31,6 +31,11 @@ from django.utils.text import slugify
 
 from catalog.models import Category, Subcategory, Vertical
 
+# Pictures for the categories themselves rather than what is inside them, in a
+# folder of that name beside them. Always matched on the file name - there is
+# no ordering to get wrong, and a category list is short enough to name.
+CATEGORY_FOLDER = "_categories"
+
 BUNDLED = Path(__file__).resolve().parents[2] / "seed_images"
 SUFFIXES = {".png", ".jpg", ".jpeg", ".webp"}
 
@@ -49,6 +54,44 @@ FOLDERS = {
 
 class Command(BaseCommand):
     help = "Attach subcategory tile images, matched by the mapping file."
+
+    def _categories(self, folder, vertical, opts):
+        """Attach the category pictures, if there are any.
+
+        A category is a different row from the services under it - Maintenance
+        lists Plumbing and Electrical, and those tiles want a picture of the
+        trade, not of one job within it.
+        """
+        source = folder / CATEGORY_FOLDER
+        if not source.is_dir():
+            return 0
+
+        self.stdout.write(self.style.MIGRATE_HEADING("Categories"))
+        attached = 0
+        for path in sorted(p for p in source.iterdir() if p.suffix.lower() in SUFFIXES):
+            category = Category.objects.filter(
+                vertical=vertical, slug=slugify(path.stem)[:140]
+            ).first()
+            if category is None:
+                self.stdout.write(
+                    self.style.WARNING(f"  no category '{path.stem}' - skipped")
+                )
+                self._unmatched += 1
+                continue
+            if category.image and not opts["replace"]:
+                self.stdout.write(f"  {category.name}: already has an image - left alone")
+                self._skipped += 1
+                continue
+
+            target = f"{category.slug}{path.suffix.lower()}"
+            if opts["dry_run"]:
+                self.stdout.write(f"  {category.name}  <-  {path.name}  (as {target})")
+            else:
+                with path.open("rb") as handle:
+                    category.image.save(target, File(handle), save=True)
+                self.stdout.write(self.style.SUCCESS(f"  {category.name}  <-  {path.name}"))
+            attached += 1
+        return attached
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -90,8 +133,13 @@ class Command(BaseCommand):
 
         attached = skipped = unmatched = 0
         dry = opts["dry_run"]
+        self._skipped = self._unmatched = 0
+
+        attached += self._categories(folder, vertical, opts)
 
         for category_folder in sorted(p for p in folder.iterdir() if p.is_dir()):
+            if category_folder.name == CATEGORY_FOLDER:
+                continue
             names = mapping.get(category_folder.name)
             if not names:
                 self.stdout.write(
@@ -160,6 +208,9 @@ class Command(BaseCommand):
                         subcategory.image.save(target, File(handle), save=True)
                     self.stdout.write(self.style.SUCCESS(f"  {name}  <-  {path.name}"))
                 attached += 1
+
+        skipped += self._skipped
+        unmatched += self._unmatched
 
         # The ones with no picture matter as much as the ones with: they are
         # what will render a placeholder in the app.
