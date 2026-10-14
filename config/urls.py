@@ -26,6 +26,9 @@ from orders.views import (
 from products.views import ProductViewSet
 from providers.views import ProviderViewSet
 from tenancy.views import (
+    AddRoomsView,
+    BuildingDetailView,
+    BuildingListView,
     EndTenancyView,
     PropertyDetailView,
     PropertyListView,
@@ -62,6 +65,11 @@ api_v1 = [
     # Rent: one section for the person who owns the flat and the person who
     # lives in it, which is why each of these answers by who is asking.
     path("rent/", RentHomeView.as_view(), name="rent-home"),
+    path("rent/buildings/", BuildingListView.as_view(), name="rent-buildings"),
+    path("rent/buildings/<int:pk>/", BuildingDetailView.as_view(),
+         name="rent-building"),
+    path("rent/buildings/<int:pk>/rooms/", AddRoomsView.as_view(),
+         name="rent-building-rooms"),
     path("rent/properties/", PropertyListView.as_view(), name="rent-properties"),
     path("rent/payments/", RentPaymentListView.as_view(), name="rent-payments"),
     path("rent/payments/<int:pk>/record/", RecordPaymentView.as_view(),

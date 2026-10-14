@@ -14,8 +14,11 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Property, RentPayment, Tenancy
+from .models import Building, Property, RentPayment, Tenancy
+from .buildings import landlord_code
 from .serializers import (
+    AddRoomsSerializer,
+    BuildingSerializer,
     PropertySerializer,
     RecordPaymentSerializer,
     RentPaymentSerializer,
@@ -63,6 +66,7 @@ class RentHomeView(APIView):
         payload = {
             "is_owner": properties.exists(),
             "is_tenant": tenancies.exists(),
+            "landlord_code": landlord_code(user),
             "owner": None,
             "tenant": None,
         }
@@ -80,6 +84,9 @@ class RentHomeView(APIView):
             this_month = payments.filter(period__year=today.year, period__month=today.month)
             overdue = payments.filter(paid_on__isnull=True, due_date__lt=today)
             payload["owner"] = {
+                "buildings": Building.objects.filter(
+                    owner=user, is_active=True
+                ).count(),
                 "properties": properties.count(),
                 "occupied": let_rooms,
                 "vacant": properties.count() - let_rooms,
@@ -109,6 +116,112 @@ class RentHomeView(APIView):
         return Response(payload)
 
 
+class BuildingListView(generics.ListCreateAPIView):
+    """The landlord's houses and plots."""
+
+    serializer_class = BuildingSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return (
+            Building.objects.filter(owner=self.request.user, is_active=True)
+            .prefetch_related("rooms__leases")
+        )
+
+    def perform_create(self, serializer):
+        building = serializer.save(owner=self.request.user)
+        # Land and the rest have no floors to lay out, but they are still let,
+        # so they get the one unit that stands for the whole of them.
+        if not building.has_rooms:
+            Property.objects.create(
+                owner=building.owner,
+                building=building,
+                title=building.name,
+                kind=Property.Kind.SHOP if building.kind == Building.Kind.OTHER
+                else Property.Kind.HOUSE,
+                address=building.address,
+                city=building.city,
+                landmark=building.landmark,
+            )
+
+
+class BuildingDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """Rename it, correct the address, or take it off the books.
+
+    Removing is a soft delete, and takes its rooms with it - a building with
+    leases and rent behind it should stop being listed, not take that history
+    with it.
+    """
+
+    serializer_class = BuildingSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Building.objects.filter(
+            owner=self.request.user, is_active=True
+        ).prefetch_related("rooms__leases")
+
+    def perform_destroy(self, instance):
+        instance.is_active = False
+        instance.save(update_fields=["is_active"])
+        instance.rooms.update(is_active=False, is_listed=False)
+
+
+class AddRoomsView(APIView):
+    """Lay out a floor: "four rooms on floor 2", or six floors of four."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        building = Building.objects.filter(
+            pk=pk, owner=request.user, is_active=True
+        ).first()
+        if building is None:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        if not building.has_rooms:
+            return Response(
+                {"detail": "%s is let whole, so it has no rooms to lay out."
+                 % building.get_kind_display()},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        form = AddRoomsSerializer(data=request.data)
+        form.is_valid(raise_exception=True)
+        data = form.validated_data
+
+        existing = building.floor_numbers()
+        floors = data.get("floors") or [(max(existing) + 1) if existing else 1]
+        prefix = (data.get("name_prefix") or "Room").strip()
+        rent = data.get("monthly_rent") or 0
+
+        created = []
+        for floor in floors:
+            # Carry on numbering rather than starting at 1 again, so adding a
+            # room to a floor later does not make a second "Room 1".
+            taken = building.rooms.filter(floor=floor).count()
+            for n in range(1, data["rooms_per_floor"] + 1):
+                created.append(
+                    Property(
+                        owner=request.user,
+                        building=building,
+                        floor=floor,
+                        title="Floor %d, %s %d" % (floor, prefix, taken + n),
+                        kind=Property.Kind.ROOM,
+                        address=building.address,
+                        city=building.city,
+                        landmark=building.landmark,
+                        monthly_rent=rent,
+                    )
+                )
+        Property.objects.bulk_create(created)
+
+        building.refresh_from_db()
+        return Response(
+            BuildingSerializer(building, context={"request": request}).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
 class PropertyListView(generics.ListCreateAPIView):
     """Owned properties, or - with ?listed=true - places going spare.
 
@@ -129,7 +242,12 @@ class PropertyListView(generics.ListCreateAPIView):
             )
         if not self.request.user.is_authenticated:
             return qs.none()
-        return qs.filter(owner=self.request.user).prefetch_related("leases__payments")
+        mine = qs.filter(owner=self.request.user).prefetch_related("leases__payments")
+        if building := self.request.query_params.get("building"):
+            mine = mine.filter(building_id=building)
+        if self.request.query_params.get("state") == "vacant":
+            mine = mine.exclude(leases__status=Tenancy.Status.ACTIVE)
+        return mine.select_related("building")
 
     def get_permissions(self):
         # Browsing is open; adding a property is not.

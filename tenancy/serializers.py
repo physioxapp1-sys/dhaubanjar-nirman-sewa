@@ -2,11 +2,89 @@ from datetime import date
 
 from rest_framework import serializers
 
-from .models import Property, RentPayment, Tenancy
+from .models import Building, Property, RentPayment, Tenancy
+
+
+class BuildingSerializer(serializers.ModelSerializer):
+    """A house, a plot, or whatever else is let."""
+
+    kind_display = serializers.CharField(source="get_kind_display", read_only=True)
+    rooms_total = serializers.SerializerMethodField()
+    rooms_let = serializers.SerializerMethodField()
+    floors = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Building
+        fields = [
+            "id", "name", "kind", "kind_display", "address", "city", "landmark",
+            "notes", "rooms_total", "rooms_let", "floors",
+        ]
+
+    def validate_name(self, value):
+        value = value.strip()
+        if len(value) < 2:
+            raise serializers.ValidationError("Give it a name, even just 'House 1'.")
+        return value
+
+    def _rooms(self, obj):
+        return [r for r in obj.rooms.all() if r.is_active]
+
+    def get_rooms_total(self, obj):
+        return len(self._rooms(obj))
+
+    def get_rooms_let(self, obj):
+        return len([r for r in self._rooms(obj) if r.is_occupied])
+
+    def get_floors(self, obj):
+        """Each floor and how it is doing, which is the whole of the landlord's
+        own sheet: a column per floor, vacant or occupied down it."""
+        if not obj.has_rooms:
+            return []  # land has no floors, and "floor 0" is not a thing
+        by_floor = {}
+        for room in self._rooms(obj):
+            by_floor.setdefault(room.floor or 0, []).append(room)
+        return [
+            {
+                "floor": floor,
+                "rooms": len(rooms),
+                "let": len([r for r in rooms if r.is_occupied]),
+            }
+            for floor, rooms in sorted(by_floor.items())
+        ]
+
+
+class AddRoomsSerializer(serializers.Serializer):
+    """Laying out a floor, or several.
+
+    A landlord says "six floors, four rooms each" once rather than adding
+    twenty-four rooms one at a time.
+    """
+
+    floors = serializers.ListField(
+        child=serializers.IntegerField(min_value=0, max_value=60),
+        required=False,
+        help_text="Which floors to lay out. Defaults to the next one up.",
+    )
+    rooms_per_floor = serializers.IntegerField(min_value=1, max_value=40)
+    name_prefix = serializers.CharField(max_length=40, required=False, allow_blank=True)
+    monthly_rent = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False
+    )
+
+    def validate(self, attrs):
+        floors = attrs.get("floors") or []
+        if len(floors) > 20:
+            raise serializers.ValidationError(
+                {"floors": "Twenty floors at a time is plenty."}
+            )
+        return attrs
 
 
 class PropertySerializer(serializers.ModelSerializer):
     kind_display = serializers.CharField(source="get_kind_display", read_only=True)
+    building_name = serializers.CharField(source="building.name", default="",
+                                          read_only=True)
+    state = serializers.CharField(read_only=True)
     image = serializers.SerializerMethodField()
     is_occupied = serializers.BooleanField(read_only=True)
     tenant_name = serializers.SerializerMethodField()
@@ -15,10 +93,11 @@ class PropertySerializer(serializers.ModelSerializer):
     class Meta:
         model = Property
         fields = [
-            "id", "title", "kind", "kind_display", "address", "city", "landmark",
+            "id", "building", "building_name", "floor", "title", "kind",
+            "kind_display", "address", "city", "landmark",
             "bedrooms", "bathrooms", "area_sqft", "monthly_rent", "deposit",
-            "is_listed", "description", "image", "is_occupied", "tenant_name",
-            "rent_state",
+            "is_listed", "description", "image", "is_occupied", "state",
+            "tenant_name", "rent_state",
         ]
 
     def get_image(self, obj):

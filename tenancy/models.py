@@ -22,6 +22,8 @@ from django.utils.functional import cached_property
 
 from catalog.models import TimeStamped
 
+from .buildings import Building, landlord_code  # noqa: F401
+
 
 class Property(TimeStamped):
     """One thing that can be let on its own - a room, a flat, a whole house.
@@ -41,7 +43,20 @@ class Property(TimeStamped):
         on_delete=models.CASCADE,
         related_name="properties",
     )
-    title = models.CharField(max_length=140, help_text="e.g. Dhapasi 2BHK, first floor")
+    # Null only for the rooms added before buildings existed. Everything made
+    # since belongs to one.
+    building = models.ForeignKey(
+        "tenancy.Building",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="rooms",
+    )
+    # Ground floor is 1, the way the landlord's own sheet counts them. Null on
+    # land, and on anything let whole.
+    floor = models.PositiveSmallIntegerField(null=True, blank=True)
+
+    title = models.CharField(max_length=140, help_text="e.g. Room 2, or Dhapasi 2BHK")
     kind = models.CharField(max_length=12, choices=Kind.choices, default=Kind.FLAT)
 
     address = models.TextField()
@@ -52,8 +67,11 @@ class Property(TimeStamped):
     bathrooms = models.PositiveSmallIntegerField(default=0)
     area_sqft = models.PositiveIntegerField(null=True, blank=True)
 
+    # Zero until it is set. Rooms are made a floor at a time, and nobody wants
+    # to type twenty-four rents before they have a tenant for any of them.
     monthly_rent = models.DecimalField(
-        max_digits=10, decimal_places=2, validators=[MinValueValidator(0)]
+        max_digits=10, decimal_places=2, default=0,
+        validators=[MinValueValidator(0)],
     )
     deposit = models.DecimalField(
         max_digits=10, decimal_places=2, default=0, validators=[MinValueValidator(0)]
@@ -71,8 +89,12 @@ class Property(TimeStamped):
 
     class Meta:
         verbose_name_plural = "properties"
-        ordering = ["title"]
-        indexes = [models.Index(fields=["owner", "is_active"])]
+        # Floor then name, so a building reads the way it is walked.
+        ordering = ["building__name", "floor", "title"]
+        indexes = [
+            models.Index(fields=["owner", "is_active"]),
+            models.Index(fields=["building", "floor"]),
+        ]
 
     def __str__(self):
         return self.title
@@ -90,6 +112,11 @@ class Property(TimeStamped):
     @property
     def is_occupied(self):
         return self.current_tenancy is not None
+
+    @property
+    def state(self):
+        """The word the landlord's own sheet uses."""
+        return "Occupied" if self.is_occupied else "Vacant"
 
 
 class Tenancy(TimeStamped):

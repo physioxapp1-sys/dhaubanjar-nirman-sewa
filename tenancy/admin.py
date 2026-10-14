@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Property, RentPayment, Tenancy
+from .models import Building, Property, RentPayment, Tenancy
 
 
 class TenancyInline(admin.TabularInline):
@@ -11,14 +11,30 @@ class TenancyInline(admin.TabularInline):
     show_change_link = True
 
 
+@admin.register(Building)
+class BuildingAdmin(admin.ModelAdmin):
+    list_display = ["name", "owner", "kind", "city", "rooms_count", "is_active"]
+    list_filter = ["kind", "is_active", "city"]
+    search_fields = ["name", "address", "owner__username"]
+    autocomplete_fields = ["owner"]
+    list_select_related = ["owner"]
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related("rooms")
+
+    @admin.display(description="Rooms")
+    def rooms_count(self, obj):
+        return obj.rooms.count()
+
+
 @admin.register(Property)
 class PropertyAdmin(admin.ModelAdmin):
-    list_display = ["title", "owner", "kind", "city", "monthly_rent",
+    list_display = ["title", "building", "floor", "owner", "monthly_rent",
                     "occupied", "is_listed", "is_active"]
-    list_filter = ["kind", "is_listed", "is_active", "city"]
+    list_filter = ["kind", "is_listed", "is_active", "city", "building"]
     search_fields = ["title", "address", "landmark", "owner__username"]
-    list_select_related = ["owner"]
-    autocomplete_fields = ["owner"]
+    list_select_related = ["owner", "building"]
+    autocomplete_fields = ["owner", "building"]
     inlines = [TenancyInline]
     # No date_hierarchy - see the note in orders/admin.py.
 
