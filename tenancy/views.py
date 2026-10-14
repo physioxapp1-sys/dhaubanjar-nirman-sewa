@@ -69,15 +69,20 @@ class RentHomeView(APIView):
 
         if payload["is_owner"]:
             live = Tenancy.objects.filter(
-                property__in=properties, status=Tenancy.Status.ACTIVE
-            )
+                rooms__in=properties, status=Tenancy.Status.ACTIVE
+            ).distinct()
+            # Rooms let, not leases signed: one lease over two rooms occupies
+            # both, and "vacant" has to mean a room you could put someone in.
+            let_rooms = properties.filter(
+                leases__status=Tenancy.Status.ACTIVE
+            ).distinct().count()
             payments = RentPayment.objects.filter(tenancy__in=live)
             this_month = payments.filter(period__year=today.year, period__month=today.month)
             overdue = payments.filter(paid_on__isnull=True, due_date__lt=today)
             payload["owner"] = {
                 "properties": properties.count(),
-                "occupied": live.count(),
-                "vacant": properties.count() - live.count(),
+                "occupied": let_rooms,
+                "vacant": properties.count() - let_rooms,
                 "expected_this_month": this_month.aggregate(t=Sum("amount"))["t"] or 0,
                 "collected_this_month": this_month.filter(paid_on__isnull=False)
                 .aggregate(t=Sum("amount_paid"))["t"]
@@ -119,13 +124,12 @@ class PropertyListView(generics.ListCreateAPIView):
         if self.request.query_params.get("listed") == "true":
             # Listed and empty. A flat with someone in it is not available
             # however it is flagged.
-            occupied = Tenancy.objects.filter(
-                status=Tenancy.Status.ACTIVE
-            ).values_list("property_id", flat=True)
-            return qs.filter(is_listed=True).exclude(id__in=occupied)
+            return qs.filter(is_listed=True).exclude(
+                leases__status=Tenancy.Status.ACTIVE
+            )
         if not self.request.user.is_authenticated:
             return qs.none()
-        return qs.filter(owner=self.request.user).prefetch_related("tenancies__payments")
+        return qs.filter(owner=self.request.user).prefetch_related("leases__payments")
 
     def get_permissions(self):
         # Browsing is open; adding a property is not.
@@ -233,7 +237,9 @@ class TenancyListView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        qs = Tenancy.objects.select_related("property", "property__owner")
+        qs = Tenancy.objects.select_related(
+            "property", "property__owner"
+        ).prefetch_related("rooms")
         if self.request.query_params.get("as") == "tenant":
             return qs.filter(id__in=rented_by(user).values("id"))
         return qs.filter(property__owner=user)

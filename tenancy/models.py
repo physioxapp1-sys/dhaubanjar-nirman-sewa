@@ -24,7 +24,11 @@ from catalog.models import TimeStamped
 
 
 class Property(TimeStamped):
-    """One place that can be let. A two-flat house is two properties."""
+    """One thing that can be let on its own - a room, a flat, a whole house.
+
+    Name them however the building is actually divided. A family taking two
+    rooms is one tenancy over both, not two tenancies.
+    """
 
     class Kind(models.TextChoices):
         FLAT = "flat", "Flat / Apartment"
@@ -75,8 +79,13 @@ class Property(TimeStamped):
 
     @property
     def current_tenancy(self):
-        """The live lease, if there is one. A property has at most one."""
-        return self.tenancies.filter(status=Tenancy.Status.ACTIVE).first()
+        """The live lease covering this room, if there is one.
+
+        Read through the rooms link rather than the headline one, because a
+        lease over rooms 1 and 2 makes both of them occupied and only one of
+        them is its headline.
+        """
+        return self.leases.filter(status=Tenancy.Status.ACTIVE).first()
 
     @property
     def is_occupied(self):
@@ -91,8 +100,15 @@ class Tenancy(TimeStamped):
         ACTIVE = "active", "Active"
         ENDED = "ended", "Ended"
 
+    # The headline room, which is what a one-room lease has and what the admin
+    # lists. Every room the lease covers - including this one - is in `rooms`.
     property = models.ForeignKey(
         Property, on_delete=models.CASCADE, related_name="tenancies"
+    )
+    rooms = models.ManyToManyField(
+        Property,
+        related_name="leases",
+        help_text="Every room this lease covers, including the one above.",
     )
     # Null while the tenant has no account. The name and number are what the
     # owner actually has, and are copied rather than linked for the same
@@ -138,7 +154,14 @@ class Tenancy(TimeStamped):
         ]
 
     def __str__(self):
-        return f"{self.tenant_name} at {self.property.title}"
+        return f"{self.tenant_name} at {self.rooms_display() or self.property.title}"
+
+    def rooms_display(self):
+        """Every room the lease covers, for the admin and the app."""
+        names = [r.title for r in self.rooms.all()]
+        if not names and self.property_id:
+            names = [self.property.title]
+        return ", ".join(names)
 
     def due_date(self, year, month):
         """When this month's rent is due. The 31st of a 30-day month is the

@@ -40,14 +40,19 @@ class RentPaymentInline(admin.TabularInline):
 
 @admin.register(Tenancy)
 class TenancyAdmin(admin.ModelAdmin):
-    list_display = ["tenant_name", "tenant_phone", "property", "start_date",
+    list_display = ["tenant_name", "tenant_phone", "rooms_display", "start_date",
                     "end_date", "monthly_rent", "rent_due_day", "status"]
     list_filter = ["status", "start_date", "property__city"]
     search_fields = ["tenant_name", "tenant_phone", "property__title"]
     list_select_related = ["property"]
     autocomplete_fields = ["property", "tenant"]
+    filter_horizontal = ["rooms"]
     list_editable = ["status"]
     inlines = [RentPaymentInline]
+
+    def get_queryset(self, request):
+        # rooms_display walks the m2m for every row.
+        return super().get_queryset(request).prefetch_related("rooms")
 
 
 @admin.register(RentPayment)

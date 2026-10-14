@@ -101,22 +101,44 @@ class TenancyWriteSerializer(serializers.ModelSerializer):
     recorded would quietly double the rent roll.
     """
 
+    # A family taking two rooms is one lease over both. The headline room is
+    # the first of them, which is what a one-room lease has always been.
+    rooms = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=Property.objects.all(), required=False
+    )
+    # Optional, because create() takes it from the first room when only rooms
+    # are sent. The model still requires one; validate() makes sure there is.
+    property = serializers.PrimaryKeyRelatedField(
+        queryset=Property.objects.all(), required=False
+    )
+
     class Meta:
         model = Tenancy
         fields = [
-            "id", "property", "tenant_name", "tenant_phone", "start_date",
-            "end_date", "monthly_rent", "deposit", "rent_due_day", "notes",
+            "id", "property", "rooms", "tenant_name", "tenant_phone",
+            "start_date", "end_date", "monthly_rent", "deposit",
+            "rent_due_day", "notes",
         ]
 
     def validate_property(self, value):
-        user = self.context["request"].user
-        if value.owner_id != user.id:
-            raise serializers.ValidationError("That is not your property.")
-        if value.current_tenancy is not None:
-            raise serializers.ValidationError(
-                "Someone is already in it. End that tenancy first."
-            )
+        self._check_room(value)
         return value
+
+    def validate_rooms(self, value):
+        for room in value:
+            self._check_room(room)
+        return value
+
+    def _check_room(self, room):
+        user = self.context["request"].user
+        if room.owner_id != user.id:
+            raise serializers.ValidationError(
+                f"{room.title} is not your property."
+            )
+        if room.current_tenancy is not None:
+            raise serializers.ValidationError(
+                f"Someone is already in {room.title}. End that tenancy first."
+            )
 
     def validate_tenant_name(self, value):
         value = value.strip()
@@ -141,23 +163,37 @@ class TenancyWriteSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {"end_date": "The tenancy cannot end before it starts."}
             )
+        if not attrs.get("property") and not attrs.get("rooms"):
+            raise serializers.ValidationError(
+                {"rooms": "Pick at least one room."}
+            )
         return attrs
 
     def create(self, validated):
+        rooms = list(validated.pop("rooms", []))
+        # Either way round: a lease given only rooms takes the first as its
+        # headline, and one given only a property covers that one room.
+        headline = validated.get("property") or rooms[0]
+        validated["property"] = headline
+        if headline not in rooms:
+            rooms.insert(0, headline)
+
+        validated.setdefault("monthly_rent", headline.monthly_rent)
         # A lease that has already begun starts active; one dated forward is
         # upcoming, and the monthly run picks it up when its month arrives.
-        validated.setdefault("monthly_rent", validated["property"].monthly_rent)
         validated["status"] = (
             Tenancy.Status.ACTIVE
             if validated["start_date"] <= date.today()
             else Tenancy.Status.UPCOMING
         )
         tenancy = super().create(validated)
+        tenancy.rooms.set(rooms)
 
-        # A flat with someone in it is not available, whatever it was flagged.
-        if tenancy.property.is_listed:
-            tenancy.property.is_listed = False
-            tenancy.property.save(update_fields=["is_listed"])
+        # A room with someone in it is not available, whatever it was flagged.
+        listed = [r for r in rooms if r.is_listed]
+        for room in listed:
+            room.is_listed = False
+            room.save(update_fields=["is_listed"])
         return tenancy
 
 
@@ -167,15 +203,22 @@ class TenancySerializer(serializers.ModelSerializer):
     property_address = serializers.CharField(source="property.address", read_only=True)
     owner_name = serializers.SerializerMethodField()
     document = serializers.SerializerMethodField()
+    room_names = serializers.SerializerMethodField()
 
     class Meta:
         model = Tenancy
         fields = [
             "id", "property", "property_title", "property_address",
-            "tenant_name", "tenant_phone", "owner_name",
+            "room_names", "tenant_name", "tenant_phone", "owner_name",
             "start_date", "end_date", "monthly_rent", "deposit", "rent_due_day",
             "status", "status_display", "document", "notes",
         ]
+
+    def get_room_names(self, obj):
+        """Every room the lease covers. One name for a one-room lease, which
+        is what it has always been."""
+        names = [r.title for r in obj.rooms.all()]
+        return names or ([obj.property.title] if obj.property_id else [])
 
     def get_owner_name(self, obj):
         owner = obj.property.owner
