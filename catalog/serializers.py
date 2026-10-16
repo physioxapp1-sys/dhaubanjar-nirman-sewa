@@ -33,6 +33,7 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = [
             "id", "vertical", "vertical_display", "name", "slug", "description",
             "image", "image_key", "icon", "sort_order", "subcategory_count",
+            "artwork_has_label",
         ]
 
     def get_image(self, obj):

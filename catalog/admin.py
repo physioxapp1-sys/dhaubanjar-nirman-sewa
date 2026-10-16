@@ -16,14 +16,16 @@ class SubcategoryInline(admin.TabularInline):
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
     list_display = ["name", "vertical", "item_count", "sort_order", "is_active", "thumb"]
-    list_filter = ["vertical", "is_active"]
+    list_filter = ["vertical", "is_active", "artwork_has_label"]
     list_editable = ["sort_order", "is_active"]
     search_fields = ["name", "slug"]
     prepopulated_fields = {"slug": ("name",)}
     inlines = [SubcategoryInline]
     fieldsets = [
         (None, {"fields": ["vertical", "name", "slug", "description"]}),
-        ("Presentation", {"fields": ["image", "image_key", "icon", "sort_order", "is_active"]}),
+        ("Presentation", {"fields": ["image", "image_key", "icon",
+                                     "artwork_has_label", "sort_order",
+                                     "is_active"]}),
     ]
 
     def get_queryset(self, request):

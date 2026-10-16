@@ -58,6 +58,15 @@ class Category(TimeStamped):
         help_text="Folder name of the bundled app asset, e.g. 'appliance-repair'.",
     )
     image = models.ImageField(upload_to="catalog/categories/", blank=True, null=True)
+    # Some artwork has the service name printed into the picture. Where it
+    # does, the app must not caption the tile as well, or the name appears
+    # twice. Untick this when the artwork is replaced with a clean photograph
+    # and the caption comes back - text scales, translates and stays legible
+    # at tile size, which a baked-in label does not.
+    artwork_has_label = models.BooleanField(
+        default=False,
+        help_text="The tile pictures already show the service name.",
+    )
     icon = models.CharField(
         max_length=60, blank=True, help_text="Material icon name used by the app."
     )
