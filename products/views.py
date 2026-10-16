@@ -28,6 +28,7 @@ class ProductPagination(PageNumberPagination):
 class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     """Products in a subcategory.
 
+        GET /api/v1/products/?category=grocery
         GET /api/v1/products/?subcategory=vegetables-fruits
         GET /api/v1/products/?subcategory=vegetables-fruits&collection=seasonal
         GET /api/v1/products/?search=tomato
@@ -48,6 +49,10 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
         p = self.request.query_params
         if p.get("subcategory"):
             qs = qs.filter(subcategory__slug=p["subcategory"])
+        # A whole section at once: Grocery opens on everything it sells rather
+        # than on a list of aisles to pick between first.
+        if p.get("category"):
+            qs = qs.filter(subcategory__category__slug=p["category"])
         if p.get("collection"):
             qs = qs.filter(collections__slug=p["collection"])
         if search := p.get("search"):
@@ -93,5 +98,7 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
         qs = Collection.objects.filter(is_active=True)
         if subcategory := request.query_params.get("subcategory"):
             qs = qs.filter(products__subcategory__slug=subcategory)
+        if category := request.query_params.get("category"):
+            qs = qs.filter(products__subcategory__category__slug=category)
         qs = qs.distinct()
         return Response(CollectionSerializer(qs, many=True).data)
