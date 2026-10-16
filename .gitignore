@@ -23,3 +23,7 @@ Thumbs.db
 
 # Deploy backups
 *.bak
+
+# Originals kept by shrink_seed_images. The recompressed files are what ship;
+# these are the undo, and 33MB of it does not belong in the repo.
+**/seed_images/**/_originals/
