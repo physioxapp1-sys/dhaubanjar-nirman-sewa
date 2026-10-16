@@ -1,6 +1,7 @@
 import random
 
 from django.db.models import Case, IntegerField, Q, Value, When
+from django.http import Http404
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
@@ -88,9 +89,20 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
         return qs.filter(pk__in=ids).order_by(order)
 
     def get_object(self):
-        # Slugs are unique per subcategory, not globally.
+        """One product by slug.
+
+        first() rather than get(): a slug that does not exist has to be a 404,
+        and DoesNotExist is not something DRF turns into one - it escapes as a
+        500. The same call covers the other half of the comment below, since a
+        name used in two aisles would otherwise raise MultipleObjectsReturned
+        and 500 as well. Pass ?subcategory= to say which one you meant.
+        """
         qs = self.filter_queryset(self.get_queryset())
-        return qs.get(slug=self.kwargs["slug"])
+        product = qs.filter(slug=self.kwargs["slug"]).first()
+        if product is None:
+            raise Http404("No product with that slug.")
+        self.check_object_permissions(self.request, product)
+        return product
 
     @action(detail=False, methods=["get"])
     def aisles(self, request):
