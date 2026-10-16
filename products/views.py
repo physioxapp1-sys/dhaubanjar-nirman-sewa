@@ -29,6 +29,7 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     """Products in a subcategory.
 
         GET /api/v1/products/?category=grocery
+        GET /api/v1/products/aisles/?category=grocery
         GET /api/v1/products/?subcategory=vegetables-fruits
         GET /api/v1/products/?subcategory=vegetables-fruits&collection=seasonal
         GET /api/v1/products/?search=tomato
@@ -90,6 +91,35 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
         # Slugs are unique per subcategory, not globally.
         qs = self.filter_queryset(self.get_queryset())
         return qs.get(slug=self.kwargs["slug"])
+
+    @action(detail=False, methods=["get"])
+    def aisles(self, request):
+        """The aisles of a section that actually have something in them.
+
+        Read from the products rather than from the catalog, so an aisle
+        somebody created and never stocked does not become a chip that leads
+        to an empty list.
+        """
+        qs = self.get_queryset()
+        seen = {}
+        for product in qs.select_related("subcategory").only(
+            "id", "subcategory__name", "subcategory__slug",
+            "subcategory__sort_order"
+        ):
+            sub = product.subcategory
+            if sub is None:
+                continue
+            row = seen.setdefault(sub.slug, {
+                "name": sub.name,
+                "slug": sub.slug,
+                "sort_order": sub.sort_order,
+                "count": 0,
+            })
+            row["count"] += 1
+        rows = sorted(seen.values(), key=lambda r: (r["sort_order"], r["name"]))
+        for row in rows:
+            row.pop("sort_order")
+        return Response(rows)
 
     @action(detail=False, methods=["get"])
     def collections(self, request):
